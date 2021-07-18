@@ -114,9 +114,29 @@ Args.parse = function(args)
     return new(Args, instance)
 end
 
+---@class Node
+---@field hash integer
+---@field children Node[]
+---@field spelling string
+local Node = {
+    ---@param self Node
+    ---@param indent string
+    print = function(self, indent)
+        print(string.format("%s%d: %s", indent, self.hash, self.spelling))
+        indent = indent .. "  "
+        if self.children then
+            for i, child in ipairs(self.children) do
+                child:print(indent)
+            end
+        end
+    end,
+}
+
 ---@class Clang
 ---@field ffi ffilib
 ---@field clang any
+---@field root Node
+---@field node_map table<integer, Node>
 local Clang = {
     ---@param path string
     ---@param unsaved_content string
@@ -169,15 +189,54 @@ local Clang = {
     end,
 
     traverse = function(self, tu)
-        local c = 0
         local visitor = self.ffi.cast("CXCursorVisitorP", function(cursor, parent, data)
-            print(c)
-            c = c + 1
+            self:push(cursor[0], parent[0])
+
             return self.ffi.C.CXChildVisit_Recurse
         end)
         local cursor = self.clang.clang_getTranslationUnitCursor(tu)
+        self:set_root(cursor)
         self.clang.clang_visitChildren(cursor, visitor, nil)
         visitor:free()
+    end,
+
+    set_root = function(self, cursor)
+        local c = self.clang.clang_hashCursor(cursor)
+        local node = new(Node, {
+            hash = c,
+            spelling = self:get_string_from_cursor(cursor),
+        })
+        self.node_map[c] = node
+        self.root = node
+    end,
+
+    push = function(self, cursor, parent_cursor)
+        local c = self.clang.clang_hashCursor(cursor)
+
+        local node = self.node_map[c]
+        if not node then
+            node = new(Node, {
+                hash = c,
+                spelling = self:get_string_from_cursor(cursor),
+            })
+            self.node_map[c] = node
+        end
+
+        if self.clang.clang_Cursor_isNull(parent_cursor) == 0 then
+            local p = self.clang.clang_hashCursor(parent_cursor)
+            local parent = self.node_map[p]
+            if not parent.children then
+                parent.children = {}
+            end
+            table.insert(parent.children, node)
+        end
+    end,
+
+    get_string_from_cursor = function(self, cursor)
+        local spelling = self.clang.clang_getCursorSpelling(cursor)
+        local value = self.ffi.string(self.clang.clang_getCString(spelling))
+        self.clang.clang_disposeString(spelling)
+        return value
     end,
 }
 
@@ -190,6 +249,7 @@ Clang.new = function()
     return new(Clang, {
         ffi = ffi,
         clang = clang,
+        node_map = {},
     })
 end
 
@@ -203,7 +263,6 @@ local function main(args)
     ]]
 
     local parsed = Args.parse(args)
-    print(string.format("%q", parsed))
 
     local clang = Clang.new()
 
@@ -216,9 +275,10 @@ local function main(args)
         -- use unsaved_content
         tu = clang:parse("__unsaved_header__.h", parsed:unsaved_export_headers(), parsed.CFLAGS)
     end
-    print(tu)
 
     clang:traverse(tu)
+
+    clang.root:print("")
 end
 
 main({ ... })
