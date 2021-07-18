@@ -4093,9 +4093,9 @@ enum CXChildVisitResult {
  * The visitor should return one of the \c CXChildVisitResult values
  * to direct clang_visitCursorChildren().
  */
-typedef enum CXChildVisitResult (*CXCursorVisitor)(CXCursor cursor,
-                                                   CXCursor parent,
-                                                   CXClientData client_data);
+typedef enum CXChildVisitResult (*CXCursorVisitor)(CXCursor cursor, CXCursor parent, CXClientData client_data);
+// http://wiki.luajit.org/FFI-Callbacks-with-pass-by-value-structs
+typedef enum CXChildVisitResult (*CXCursorVisitorP)(CXCursor *cursor, CXCursor *parent, CXClientData client_data);
 
 /**
  * Visit the children of a particular cursor.

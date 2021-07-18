@@ -1,9 +1,3 @@
-require("clang.CXString")
-require("clang.Index")
-local ffi = require("ffi")
-local clang = ffi.load("libclang")
--- print(clang)
-
 ---@param str string
 ---@param ts string
 ---@return string[]
@@ -120,54 +114,83 @@ Args.parse = function(args)
     return new(Args, instance)
 end
 
----@param path string
----@param unsaved_content string
----@param cflags string[]
-local function parse_clang(path, unsaved_content, cflags)
-    local index = clang.clang_createIndex(0, 0)
+---@class Clang
+---@field ffi ffilib
+---@field clang any
+local Clang = {
+    ---@param path string
+    ---@param unsaved_content string
+    ---@param cflags string[]
+    parse = function(self, path, unsaved_content, cflags)
+        local index = self.clang.clang_createIndex(0, 0)
 
-    local arguments = {
-        "-x",
-        "c++",
-        "-target",
-        "x86_64-windows-msvc",
-        "-fms-compatibility-version=18",
-        "-fdeclspec",
-        "-fms-compatibility",
-    }
-    for i, cflag in ipairs(cflags) do
-        table.insert(arguments, cflag)
-    end
-    table.insert(arguments, string.format("-I%s", path))
+        local arguments = {
+            "-x",
+            "c++",
+            "-target",
+            "x86_64-windows-msvc",
+            "-fms-compatibility-version=18",
+            "-fdeclspec",
+            "-fms-compatibility",
+        }
+        for i, cflag in ipairs(cflags) do
+            table.insert(arguments, cflag)
+        end
+        table.insert(arguments, string.format("-I%s", path))
 
-    local c_str = ffi.typeof(string.format("const char *[%d]", #arguments))
-    local array = c_str()
-    for i, arg in ipairs(arguments) do
-        -- FFI is zero origin !
-        array[i - 1] = arg
-    end
+        local c_str = self.ffi.typeof(string.format("const char *[%d]", #arguments))
+        local array = c_str()
+        for i, arg in ipairs(arguments) do
+            -- FFI is zero origin !
+            array[i - 1] = arg
+        end
 
-    local unsaved = ffi.new("struct CXUnsavedFile")
-    local n_unsaved = 0
+        local unsaved = self.ffi.new("struct CXUnsavedFile")
+        local n_unsaved = 0
 
-    if #unsaved_content > 0 then
-        n_unsaved = 1
-        unsaved.Filename = path
-        unsaved.Contents = unsaved_content
-        unsaved.Length = #unsaved_content
-    end
+        if #unsaved_content > 0 then
+            n_unsaved = 1
+            unsaved.Filename = path
+            unsaved.Contents = unsaved_content
+            unsaved.Length = #unsaved_content
+        end
 
-    local tu = clang.clang_parseTranslationUnit(
-        index,
-        path,
-        array,
-        #arguments,
-        unsaved,
-        n_unsaved,
-        ffi.C.CXTranslationUnit_DetailedPreprocessingRecord
-    )
+        local tu = self.clang.clang_parseTranslationUnit(
+            index,
+            path,
+            array,
+            #arguments,
+            unsaved,
+            n_unsaved,
+            self.ffi.C.CXTranslationUnit_DetailedPreprocessingRecord
+        )
 
-    return tu
+        return tu
+    end,
+
+    traverse = function(self, tu)
+        local c = 0
+        local visitor = self.ffi.cast("CXCursorVisitorP", function(cursor, parent, data)
+            print(c)
+            c = c + 1
+            return self.ffi.C.CXChildVisit_Recurse
+        end)
+        local cursor = self.clang.clang_getTranslationUnitCursor(tu)
+        self.clang.clang_visitChildren(cursor, visitor, nil)
+        visitor:free()
+    end,
+}
+
+---@return Clang
+Clang.new = function()
+    require("clang.CXString")
+    require("clang.Index")
+    local ffi = require("ffi")
+    local clang = ffi.load("libclang")
+    return new(Clang, {
+        ffi = ffi,
+        clang = clang,
+    })
 end
 
 ---@param args string[]
@@ -182,16 +205,20 @@ local function main(args)
     local parsed = Args.parse(args)
     print(string.format("%q", parsed))
 
+    local clang = Clang.new()
+
     -- parse libclang
     local tu
     if #parsed.EXPORTS == 1 then
         -- empty unsaved_content
-        tu = parse_clang(parsed.EXPORTS[1].header, "", parsed.CFLAGS)
+        tu = clang:parse(parsed.EXPORTS[1].header, "", parsed.CFLAGS)
     else
         -- use unsaved_content
-        tu = parse_clang("__unsaved_header__.h", parsed:unsaved_export_headers(), parsed.CFLAGS)
+        tu = clang:parse("__unsaved_header__.h", parsed:unsaved_export_headers(), parsed.CFLAGS)
     end
     print(tu)
+
+    clang:traverse(tu)
 end
 
 main({ ... })
