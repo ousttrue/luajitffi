@@ -117,12 +117,13 @@ end
 ---@class Node
 ---@field hash integer
 ---@field children Node[]
+---@field type any
 ---@field spelling string
 local Node = {
     ---@param self Node
     ---@param indent string
     print = function(self, indent)
-        print(string.format("%s%d: %s", indent, self.hash, self.spelling))
+        print(string.format("%s%d: %q %s", indent, self.hash, self.type, self.spelling))
         indent = indent .. "  "
         if self.children then
             for i, child in ipairs(self.children) do
@@ -200,27 +201,26 @@ local Clang = {
         visitor:free()
     end,
 
-    set_root = function(self, cursor)
+    get_or_create_node = function(self, cursor)
         local c = self.clang.clang_hashCursor(cursor)
-        local node = new(Node, {
-            hash = c,
-            spelling = self:get_string_from_cursor(cursor),
-        })
-        self.node_map[c] = node
-        self.root = node
-    end,
-
-    push = function(self, cursor, parent_cursor)
-        local c = self.clang.clang_hashCursor(cursor)
-
         local node = self.node_map[c]
         if not node then
             node = new(Node, {
                 hash = c,
                 spelling = self:get_string_from_cursor(cursor),
+                type = cursor.kind,
             })
-            self.node_map[c] = node
+            self.node_map[node.hash] = node
         end
+        return node
+    end,
+
+    set_root = function(self, cursor)
+        self.root = self:get_or_create_node(cursor)
+    end,
+
+    push = function(self, cursor, parent_cursor)
+        local node = self:get_or_create_node(cursor)
 
         if self.clang.clang_Cursor_isNull(parent_cursor) == 0 then
             local p = self.clang.clang_hashCursor(parent_cursor)
