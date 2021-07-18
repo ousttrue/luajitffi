@@ -12,6 +12,15 @@
                 "lua": "${workspaceFolder}/lua/bin/lua.exe",
                 "file": "${workspaceFolder}/clangffi.lua"
             },
+            "args": [
+                "-IC:/Program Files/LLVM/include",
+                // Export
+                "-EC:/Program Files/LLVM/include/clang-c/Index.h,libclang.dll",
+                "-EC:/Program Files/LLVM/include/clang-c/CXString.h,libclang.dll",
+                // OUt
+                "-O./generated/clang",
+            ],
+            "cwd": "${workspaceFolder}",
             "env": {
                 // path to libclang.dll
                 "PATH": "${env:PATH};C:\\Program Files\\LLVM\\bin",
