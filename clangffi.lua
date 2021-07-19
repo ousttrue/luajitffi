@@ -1,47 +1,6 @@
 local Node = require("node")
 local Exporter = require("exporter")
-
----@param str string
----@param ts string
----@return string[]
-local function split(str, ts)
-    local t = {}
-    for s in string.gmatch(str, "([^" .. ts .. "]+)") do
-        table.insert(t, s)
-    end
-    return t
-end
-
----@generic S, T
----@param t S[]
----@param f fun(src:S):T
----@return T[]
-local function map(t, f)
-    local dst = {}
-    for _, v in ipairs(t) do
-        table.insert(dst, f(v))
-    end
-    return dst
-end
-
----@generic S
----@param t S[]
----@param f fun(src:S):boolean
----@return S[]
-local function filter(t, f)
-    local dst = {}
-    for _, v in ipairs(t) do
-        if f(v) then
-            table.insert(dst, v)
-        end
-    end
-    return dst
-end
-
-local function new(class_table, instance_table)
-    class_table.__index = class_table
-    return setmetatable(instance_table, class_table)
-end
+local utils = require("utils")
 
 ---@class Export
 ---@field header string
@@ -57,7 +16,7 @@ local Export = {
 ---@param link string
 ---@return Export
 Export.new = function(header, link)
-    return new(Export, {
+    return utils.new(Export, {
         header = header,
         link = link,
     })
@@ -74,7 +33,7 @@ local CommandLine = {
             "CFLAGS:[%s], EXPORT:[%s] => %s",
             table.concat(self.CFLAGS, ", "),
             table.concat(
-                map(self.EXPORTS, function(v)
+                utils.map(self.EXPORTS, function(v)
                     return tostring(v)
                 end),
                 ", "
@@ -96,7 +55,7 @@ CommandLine.parse = function(args)
             table.insert(instance.CFLAGS, arg)
         elseif arg:find("-E") == 1 then
             local value = arg:sub(3)
-            local export, dll = unpack(split(value, ","))
+            local export, dll = unpack(utils.split(value, ","))
             table.insert(instance.EXPORTS, Export.new(export, dll))
         elseif arg:find("-O") == 1 then
             local value = arg:sub(3)
@@ -105,7 +64,7 @@ CommandLine.parse = function(args)
         i = i + 1
     end
 
-    return new(CommandLine, instance)
+    return utils.new(CommandLine, instance)
 end
 
 ---@class Clang
@@ -125,7 +84,7 @@ local Parser = {
             tu = self:get_tu(exports[1].header, "", cflags)
         else
             -- use unsaved_content
-            local mapped = map(exports, function(v)
+            local mapped = utils.map(exports, function(v)
                 return string.format('#include "%s"', v.header)
             end)
             local unsaved_content = table.concat(mapped, "\n")
@@ -219,7 +178,7 @@ local Parser = {
         local c = self.clang.clang_hashCursor(cursor)
         local node = self.node_map[c]
         if not node then
-            node = new(Node, {
+            node = utils.new(Node, {
                 hash = c,
                 spelling = self:get_spelling_from_cursor(cursor),
                 type = cursor.kind,
@@ -271,7 +230,7 @@ Parser.new = function()
     require("clang.Index")
     local ffi = require("ffi")
     local clang = ffi.load("libclang")
-    return new(Parser, {
+    return utils.new(Parser, {
         ffi = ffi,
         clang = clang,
         node_map = {},
@@ -307,13 +266,15 @@ local function main(args)
                 if node.type == parser.ffi.C.CXCursor_FunctionDecl then
                     if node.location == export.header then
                         used[node] = true
-                        exporter:export(node)
+
+                        local f = exporter:export(node)
+                        print(f)
                     end
                 end
             end
         end
 
-        print(exporter)
+        -- print(exporter)
     end
 end
 

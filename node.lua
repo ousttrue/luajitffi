@@ -48,6 +48,9 @@ end
 ---@field indent string
 ---@field formatted string
 local Node = {
+
+    ---@param self Node
+    ---@return fun(root: Node, state: Node[]):Node[]
     traverse = function(self)
         return traverse, self
     end,
@@ -72,13 +75,8 @@ local Node = {
     -- end,
 
     ---@param self Node
-    print = function(self)
-        print(string.format("%s%q: %s", self.indent, self.type, self.spelling))
-        if self.children then
-            for i, child in ipairs(self.children) do
-                child:print()
-            end
-        end
+    __tostring = function(self)
+        return string.format("%s%q: %s", self.indent, self.type, self.spelling)
     end,
 }
 
