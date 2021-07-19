@@ -297,12 +297,18 @@ local function main(args)
     --     node:process()
     -- end
 
+    local used = {}
     for i, export in ipairs(cmd.EXPORTS) do
-        local exporter = Exporter.new(export.header, export.link)        
+        local exporter = Exporter.new(export.header, export.link)
         for path, node in parser.root:traverse() do
-            if node.type == parser.ffi.C.CXCursor_FunctionDecl then
-                if node.location == export.header then
-                    exporter:export(node)
+            if used[node] then
+                -- skip
+            else
+                if node.type == parser.ffi.C.CXCursor_FunctionDecl then
+                    if node.location == export.header then
+                        used[node] = true
+                        exporter:export(node)
+                    end
                 end
             end
         end
