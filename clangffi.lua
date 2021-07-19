@@ -52,17 +52,6 @@ end
 ---@field OUT_DIR string
 local Args = {
     ---@param self Args
-    ---@return string
-    unsaved_export_headers = function(self)
-        return table.concat(
-            map(self.EXPORTS, function(v)
-                return string.format('#include "%s"', v.header)
-            end),
-            "\n"
-        )
-    end,
-
-    ---@param self Args
     __tostring = function(self)
         return string.format(
             "CFLAGS:[%s], EXPORT:[%s] => %s",
@@ -139,10 +128,34 @@ local Node = {
 ---@field root Node
 ---@field node_map table<integer, Node>
 local Clang = {
+    ---@param self Clang
+    ---@param exports Export[]
+    ---@param cflags string[]
+    parse = function(self, exports, cflags)
+        -- parse libclang
+        local tu
+        if #exports == 1 then
+            -- empty unsaved_content
+            tu = self:get_tu(exports[1].header, "", cflags)
+        else
+            -- use unsaved_content
+            local unsaved_content = table.concat(
+                map(exports, function(v)
+                    return string.format('#include "%s"', v.header)
+                end),
+                "\n"
+            )
+            tu = self:get_tu("__unsaved_header__.h", unsaved_content, cflags)
+        end
+
+        self:traverse(tu)
+    end,
+
+    ---@param self Clang
     ---@param path string
     ---@param unsaved_content string
     ---@param cflags string[]
-    parse = function(self, path, unsaved_content, cflags)
+    get_tu = function(self, path, unsaved_content, cflags)
         local index = self.clang.clang_createIndex(0, 0)
 
         local arguments = {
@@ -266,17 +279,7 @@ local function main(args)
 
     local clang = Clang.new()
 
-    -- parse libclang
-    local tu
-    if #parsed.EXPORTS == 1 then
-        -- empty unsaved_content
-        tu = clang:parse(parsed.EXPORTS[1].header, "", parsed.CFLAGS)
-    else
-        -- use unsaved_content
-        tu = clang:parse("__unsaved_header__.h", parsed:unsaved_export_headers(), parsed.CFLAGS)
-    end
-
-    clang:traverse(tu)
+    clang:parse(parsed.EXPORTS, parsed.CFLAGS)
 
     clang.root:print("")
 end
