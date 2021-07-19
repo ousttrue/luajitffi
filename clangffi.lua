@@ -12,15 +12,29 @@ local function split(str, ts)
 end
 
 ---@generic S, T
----@param tbl S[]
+---@param t S[]
 ---@param f fun(src:S):T
 ---@return T[]
-local function map(tbl, f)
-    local t = {}
-    for _, v in ipairs(tbl) do
-        table.insert(t, f(v))
+local function map(t, f)
+    local dst = {}
+    for _, v in ipairs(t) do
+        table.insert(dst, f(v))
     end
-    return t
+    return dst
+end
+
+---@generic S
+---@param t S[]
+---@param f fun(src:S):boolean
+---@return S[]
+local function filter(t, f)
+    local dst = {}
+    for _, v in ipairs(t) do
+        if f(v) then
+            table.insert(dst, v)
+        end
+    end
+    return dst
 end
 
 local function new(class_table, instance_table)
@@ -90,18 +104,6 @@ CommandLine.parse = function(args)
         i = i + 1
     end
 
-    for i, cflags in ipairs(instance.CFLAGS) do
-        if cflags:find("-I") == 1 then
-            local include = cflags:sub(3)
-            for j, v in ipairs(instance.EXPORTS) do
-                if v.header:find(include) == 1 then
-                    -- to relative path
-                    v.header = v.header:sub(#include + 2)
-                end
-            end
-        end
-    end
-
     return new(CommandLine, instance)
 end
 
@@ -122,16 +124,14 @@ local Parser = {
             tu = self:get_tu(exports[1].header, "", cflags)
         else
             -- use unsaved_content
-            local unsaved_content = table.concat(
-                map(exports, function(v)
-                    return string.format('#include "%s"', v.header)
-                end),
-                "\n"
-            )
+            local mapped = map(exports, function(v)
+                return string.format('#include "%s"', v.header)
+            end)
+            local unsaved_content = table.concat(mapped, "\n")
             tu = self:get_tu("__unsaved_header__.h", unsaved_content, cflags)
         end
 
-        self:traverse(tu)
+        self:visit_recursive(tu)
     end,
 
     ---@param self Clang
@@ -185,7 +185,7 @@ local Parser = {
         return tu
     end,
 
-    traverse = function(self, tu)
+    visit_recursive = function(self, tu)
         local visitor = self.ffi.cast("CXCursorVisitorP", function(cursor, parent, data)
             self:push(cursor[0], parent[0])
 
@@ -231,19 +231,19 @@ local Parser = {
 
     set_root = function(self, cursor)
         self.root = self:get_or_create_node(cursor)
+        self.root.indent = ""
     end,
 
     push = function(self, cursor, parent_cursor)
         local node = self:get_or_create_node(cursor)
 
-        if self.clang.clang_Cursor_isNull(parent_cursor) == 0 then
-            local p = self.clang.clang_hashCursor(parent_cursor)
-            local parent = self.node_map[p]
-            if not parent.children then
-                parent.children = {}
-            end
-            table.insert(parent.children, node)
+        local p = self.clang.clang_hashCursor(parent_cursor)
+        local parent = self.node_map[p]
+        if not parent.children then
+            parent.children = {}
         end
+        table.insert(parent.children, node)
+        node.indent = parent.indent .. "  "
     end,
 
     get_spelling_from_cursor = function(self, cursor)
@@ -292,8 +292,19 @@ local function main(args)
 
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
-    parser.root:process()
-    parser.root:print("")
+    -- for node in parser.root:traverse_after() do
+    --     node:process()
+    -- end
+
+    for i, export in ipairs(cmd.EXPORTS) do
+        for node in parser.root:traverse_begin() do
+            if node.type == parser.ffi.C.CXCursor_FunctionDecl then
+                if node.location == export.header then
+                    node:print()
+                end
+            end
+        end
+    end
 end
 
 main({ ... })
