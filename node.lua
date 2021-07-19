@@ -1,6 +1,3 @@
-local ffi = require("ffi")
-local C = ffi.C
-
 local function from_path(root, path)
     local current = root
     local i = 1

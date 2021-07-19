@@ -1,12 +1,22 @@
-local ffi = require("ffi")
-local C = ffi.C
 local utils = require("utils")
 local typemap = require("typemap")
+local clang = require("clang")
+local C = clang.C
 
 ---@class Param
+---@field node Node
 ---@field name string
 ---@field type string
 local Param = {}
+
+---@param node Node
+---@return Node
+Param.new = function(node)
+    return utils.new(Param, {
+        node = node,
+        name = node.spelling,
+    })
+end
 
 ---@class Function
 ---@field dll_export boolean
@@ -21,11 +31,8 @@ local Function = {
             prefix = "extern "
         end
         local params = utils.map(self.params, function(p)
-            if p.type then
-                return string.format("%s %s", p.type, p.name)
-            else
-                return p.name
-            end
+            assert(p.type)
+            return string.format("%s %s", p.type, p.name)
         end)
         return string.format("%s%s %s(%s)", prefix, self.return_type, self.name, table.concat(params, ", "))
     end,
@@ -66,9 +73,7 @@ local Exporter = {
             elseif node.type == C.CXCursor_DLLImport then
                 f.dll_export = true
             elseif node.type == C.CXCursor_ParmDecl then
-                local param = utils.new(Param, {
-                    name = node.spelling,
-                })
+                local param = Param.new(node)
                 table.insert(f.params, param)
             elseif node.type == C.CXCursor_TypeRef then
                 if #f.params == 0 then
@@ -78,6 +83,12 @@ local Exporter = {
                 end
             else
                 print(node)
+            end
+        end
+
+        for i, p in ipairs(f.params) do
+            if not p.type then
+                p.type = typemap:get_or_create(p.node)
             end
         end
 

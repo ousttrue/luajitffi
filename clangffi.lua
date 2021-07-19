@@ -1,6 +1,8 @@
 local Node = require("node")
 local Exporter = require("exporter")
 local utils = require("utils")
+local ffi = require("ffi")
+local clang = require("clang")
 
 ---@class Export
 ---@field header string
@@ -68,8 +70,6 @@ CommandLine.parse = function(args)
 end
 
 ---@class Clang
----@field ffi ffilib
----@field clang any
 ---@field root Node
 ---@field node_map table<integer, Node>
 local Parser = {
@@ -99,7 +99,7 @@ local Parser = {
     ---@param unsaved_content string
     ---@param cflags string[]
     get_tu = function(self, path, unsaved_content, cflags)
-        local index = self.clang.clang_createIndex(0, 0)
+        local index = clang.dll.clang_createIndex(0, 0)
 
         local arguments = {
             "-x",
@@ -115,14 +115,14 @@ local Parser = {
         end
         table.insert(arguments, string.format("-I%s", path))
 
-        local c_str = self.ffi.typeof(string.format("const char *[%d]", #arguments))
+        local c_str = ffi.typeof(string.format("const char *[%d]", #arguments))
         local array = c_str()
         for i, arg in ipairs(arguments) do
             -- FFI is zero origin !
             array[i - 1] = arg
         end
 
-        local unsaved = self.ffi.new("struct CXUnsavedFile")
+        local unsaved = ffi.new("struct CXUnsavedFile")
         local n_unsaved = 0
 
         if #unsaved_content > 0 then
@@ -132,42 +132,42 @@ local Parser = {
             unsaved.Length = #unsaved_content
         end
 
-        local tu = self.clang.clang_parseTranslationUnit(
+        local tu = clang.dll.clang_parseTranslationUnit(
             index,
             path,
             array,
             #arguments,
             unsaved,
             n_unsaved,
-            self.ffi.C.CXTranslationUnit_DetailedPreprocessingRecord
+            clang.C.CXTranslationUnit_DetailedPreprocessingRecord
         )
 
         return tu
     end,
 
     visit_recursive = function(self, tu)
-        local visitor = self.ffi.cast("CXCursorVisitorP", function(cursor, parent, data)
+        local visitor = ffi.cast("CXCursorVisitorP", function(cursor, parent, data)
             self:push(cursor[0], parent[0])
 
-            return self.ffi.C.CXChildVisit_Recurse
+            return clang.C.CXChildVisit_Recurse
         end)
-        local cursor = self.clang.clang_getTranslationUnitCursor(tu)
+        local cursor = clang.dll.clang_getTranslationUnitCursor(tu)
         self:set_root(cursor)
-        self.clang.clang_visitChildren(cursor, visitor, nil)
+        clang.dll.clang_visitChildren(cursor, visitor, nil)
         visitor:free()
     end,
 
     get_location = function(self, cursor)
-        local location = self.clang.clang_getCursorLocation(cursor)
-        if self.clang.clang_equalLocations(location, self.clang.clang_getNullLocation()) ~= 0 then
+        local location = clang.dll.clang_getCursorLocation(cursor)
+        if clang.dll.clang_equalLocations(location, clang.dll.clang_getNullLocation()) ~= 0 then
             return
         end
 
-        local file = self.ffi.new("CXFile[1]")
-        local line = self.ffi.new("unsigned[1]")
-        local column = self.ffi.new("unsigned[1]")
-        local offset = self.ffi.new("unsigned[1]")
-        self.clang.clang_getSpellingLocation(location, file, line, column, offset)
+        local file = ffi.new("CXFile[1]")
+        local line = ffi.new("unsigned[1]")
+        local column = ffi.new("unsigned[1]")
+        local offset = ffi.new("unsigned[1]")
+        clang.dll.clang_getSpellingLocation(location, file, line, column, offset)
         local path = self:get_spelling_from_file(file[0])
         if path then
             return path
@@ -175,7 +175,7 @@ local Parser = {
     end,
 
     get_or_create_node = function(self, cursor)
-        local c = self.clang.clang_hashCursor(cursor)
+        local c = clang.dll.clang_hashCursor(cursor)
         local node = self.node_map[c]
         if not node then
             node = utils.new(Node, {
@@ -197,7 +197,7 @@ local Parser = {
     push = function(self, cursor, parent_cursor)
         local node = self:get_or_create_node(cursor)
 
-        local p = self.clang.clang_hashCursor(parent_cursor)
+        local p = clang.dll.clang_hashCursor(parent_cursor)
         local parent = self.node_map[p]
         if not parent.children then
             parent.children = {}
@@ -207,29 +207,25 @@ local Parser = {
     end,
 
     get_spelling_from_cursor = function(self, cursor)
-        local cxString = self.clang.clang_getCursorSpelling(cursor)
-        local value = self.ffi.string(self.clang.clang_getCString(cxString))
-        self.clang.clang_disposeString(cxString)
+        local cxString = clang.dll.clang_getCursorSpelling(cursor)
+        local value = ffi.string(clang.dll.clang_getCString(cxString))
+        clang.dll.clang_disposeString(cxString)
         return value
     end,
 
     get_spelling_from_file = function(self, file)
-        if file == self.ffi.NULL then
+        if file == ffi.NULL then
             return
         end
-        local cxString = self.clang.clang_getFileName(file)
-        local value = self.ffi.string(self.clang.clang_getCString(cxString))
-        self.clang.clang_disposeString(cxString)
+        local cxString = clang.dll.clang_getFileName(file)
+        local value = ffi.string(clang.dll.clang_getCString(cxString))
+        clang.dll.clang_disposeString(cxString)
         return value
     end,
 }
 
 ---@return Clang
 Parser.new = function()
-    require("clang.CXString")
-    require("clang.Index")
-    local ffi = require("ffi")
-    local clang = ffi.load("libclang")
     return utils.new(Parser, {
         ffi = ffi,
         clang = clang,
@@ -263,7 +259,7 @@ local function main(args)
             if used[node] then
                 -- skip
             else
-                if node.type == parser.ffi.C.CXCursor_FunctionDecl then
+                if node.type == clang.C.CXCursor_FunctionDecl then
                     if node.location == export.header then
                         used[node] = true
 
