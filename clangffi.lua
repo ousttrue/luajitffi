@@ -1,3 +1,5 @@
+local Node = require("node")
+
 ---@param str string
 ---@param ts string
 ---@return string[]
@@ -50,7 +52,7 @@ end
 ---@field CFLAGS string[]
 ---@field EXPORTS Export[]
 ---@field OUT_DIR string
-local Args = {
+local CommandLine = {
     ---@param self Args
     __tostring = function(self)
         return string.format(
@@ -69,7 +71,7 @@ local Args = {
 
 ---@param args string[]
 ---@return Args
-Args.parse = function(args)
+CommandLine.parse = function(args)
     local instance = {
         CFLAGS = {},
         EXPORTS = {},
@@ -100,34 +102,15 @@ Args.parse = function(args)
         end
     end
 
-    return new(Args, instance)
+    return new(CommandLine, instance)
 end
-
----@class Node
----@field hash integer
----@field children Node[]
----@field type any
----@field spelling string
-local Node = {
-    ---@param self Node
-    ---@param indent string
-    print = function(self, indent)
-        print(string.format("%s%d: %q %s", indent, self.hash, self.type, self.spelling))
-        indent = indent .. "  "
-        if self.children then
-            for i, child in ipairs(self.children) do
-                child:print(indent)
-            end
-        end
-    end,
-}
 
 ---@class Clang
 ---@field ffi ffilib
 ---@field clang any
 ---@field root Node
 ---@field node_map table<integer, Node>
-local Clang = {
+local Parser = {
     ---@param self Clang
     ---@param exports Export[]
     ---@param cflags string[]
@@ -214,14 +197,32 @@ local Clang = {
         visitor:free()
     end,
 
+    get_location = function(self, cursor)
+        local location = self.clang.clang_getCursorLocation(cursor)
+        if self.clang.clang_equalLocations(location, self.clang.clang_getNullLocation()) ~= 0 then
+            return
+        end
+
+        local file = self.ffi.new("CXFile[1]")
+        local line = self.ffi.new("unsigned[1]")
+        local column = self.ffi.new("unsigned[1]")
+        local offset = self.ffi.new("unsigned[1]")
+        self.clang.clang_getSpellingLocation(location, file, line, column, offset)
+        local path = self:get_spelling_from_file(file[0])
+        if path then
+            return path
+        end
+    end,
+
     get_or_create_node = function(self, cursor)
         local c = self.clang.clang_hashCursor(cursor)
         local node = self.node_map[c]
         if not node then
             node = new(Node, {
                 hash = c,
-                spelling = self:get_string_from_cursor(cursor),
+                spelling = self:get_spelling_from_cursor(cursor),
                 type = cursor.kind,
+                location = self:get_location(cursor),
             })
             self.node_map[node.hash] = node
         end
@@ -245,21 +246,31 @@ local Clang = {
         end
     end,
 
-    get_string_from_cursor = function(self, cursor)
-        local spelling = self.clang.clang_getCursorSpelling(cursor)
-        local value = self.ffi.string(self.clang.clang_getCString(spelling))
-        self.clang.clang_disposeString(spelling)
+    get_spelling_from_cursor = function(self, cursor)
+        local cxString = self.clang.clang_getCursorSpelling(cursor)
+        local value = self.ffi.string(self.clang.clang_getCString(cxString))
+        self.clang.clang_disposeString(cxString)
+        return value
+    end,
+
+    get_spelling_from_file = function(self, file)
+        if file == self.ffi.NULL then
+            return
+        end
+        local cxString = self.clang.clang_getFileName(file)
+        local value = self.ffi.string(self.clang.clang_getCString(cxString))
+        self.clang.clang_disposeString(cxString)
         return value
     end,
 }
 
 ---@return Clang
-Clang.new = function()
+Parser.new = function()
     require("clang.CXString")
     require("clang.Index")
     local ffi = require("ffi")
     local clang = ffi.load("libclang")
-    return new(Clang, {
+    return new(Parser, {
         ffi = ffi,
         clang = clang,
         node_map = {},
@@ -275,13 +286,14 @@ local function main(args)
     -Oout_dir
     ]]
 
-    local parsed = Args.parse(args)
+    local cmd = CommandLine.parse(args)
 
-    local clang = Clang.new()
+    local parser = Parser.new()
 
-    clang:parse(parsed.EXPORTS, parsed.CFLAGS)
+    parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
-    clang.root:print("")
+    parser.root:process()
+    parser.root:print("")
 end
 
 main({ ... })
