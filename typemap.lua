@@ -1,33 +1,42 @@
 local utils = require("utils")
+local clang = require("clang")
+local C = clang.C
 
 ---@class Type
 ---@field name string
 local Type = {}
 
 ---@class TypeMap
----@field typemap Table<Node, Type>
+---@field typemap Table<integer, Type>
 local TypeMap = {
     ---@param self TypeMap
-    ---@param node Node
-    get_or_create = function(self, node)
-        local t = self.typemap[node]
+    ---@param cursor any
+    ---@param cxType any
+    get_or_create = function(self, cursor, cxType)
+        local c = clang.dll.clang_hashCursor(cursor)
+        local t = self.typemap[c]
         if t then
             return t
         end
 
-        -- local cx_type = clang. unsafe { clang_getCursorResultType(cursor)        
+        if cxType.kind == C.CXType_Void then
+            t = utils.new(Type, {
+                name = "void",
+            })
+        else
+            print(cxType.kind)
+            assert(false)
+        end
 
-        t = utils.new(Type, {
-            name = node.spelling,
-        })
-        self.typemap[node] = t
+        self.typemap[c] = t
         return t
     end,
 }
 
----@type TypeMap
-local typemap = utils.new(TypeMap, {
-    typemap = {},
-})
+TypeMap.new = function()
+    return utils.new(TypeMap, {
+        typemap = {},
+    })
+end
 
-return typemap
+return TypeMap

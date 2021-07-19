@@ -3,6 +3,7 @@ local Exporter = require("exporter")
 local utils = require("utils")
 local ffi = require("ffi")
 local clang = require("clang")
+local TypeMap = require("typemap")
 
 ---@class Export
 ---@field header string
@@ -148,7 +149,6 @@ local Parser = {
     visit_recursive = function(self, tu)
         local visitor = ffi.cast("CXCursorVisitorP", function(cursor, parent, data)
             self:push(cursor[0], parent[0])
-
             return clang.C.CXChildVisit_Recurse
         end)
         local cursor = clang.dll.clang_getTranslationUnitCursor(tu)
@@ -157,33 +157,11 @@ local Parser = {
         visitor:free()
     end,
 
-    get_location = function(self, cursor)
-        local location = clang.dll.clang_getCursorLocation(cursor)
-        if clang.dll.clang_equalLocations(location, clang.dll.clang_getNullLocation()) ~= 0 then
-            return
-        end
-
-        local file = ffi.new("CXFile[1]")
-        local line = ffi.new("unsigned[1]")
-        local column = ffi.new("unsigned[1]")
-        local offset = ffi.new("unsigned[1]")
-        clang.dll.clang_getSpellingLocation(location, file, line, column, offset)
-        local path = self:get_spelling_from_file(file[0])
-        if path then
-            return path
-        end
-    end,
-
     get_or_create_node = function(self, cursor)
         local c = clang.dll.clang_hashCursor(cursor)
         local node = self.node_map[c]
         if not node then
-            node = utils.new(Node, {
-                hash = c,
-                spelling = self:get_spelling_from_cursor(cursor),
-                type = cursor.kind,
-                location = self:get_location(cursor),
-            })
+            node = Node.new(cursor, c)
             self.node_map[node.hash] = node
         end
         return node
@@ -204,23 +182,6 @@ local Parser = {
         end
         table.insert(parent.children, node)
         node.indent = parent.indent .. "  "
-    end,
-
-    get_spelling_from_cursor = function(self, cursor)
-        local cxString = clang.dll.clang_getCursorSpelling(cursor)
-        local value = ffi.string(clang.dll.clang_getCString(cxString))
-        clang.dll.clang_disposeString(cxString)
-        return value
-    end,
-
-    get_spelling_from_file = function(self, file)
-        if file == ffi.NULL then
-            return
-        end
-        local cxString = clang.dll.clang_getFileName(file)
-        local value = ffi.string(clang.dll.clang_getCString(cxString))
-        clang.dll.clang_disposeString(cxString)
-        return value
     end,
 }
 
@@ -248,9 +209,7 @@ local function main(args)
 
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
-    -- for node in parser.root:traverse_after() do
-    --     node:process()
-    -- end
+    local typemap = TypeMap.new()
 
     local used = {}
     for i, export in ipairs(cmd.EXPORTS) do
@@ -263,7 +222,7 @@ local function main(args)
                     if node.location == export.header then
                         used[node] = true
 
-                        local f = exporter:export(node)
+                        local f = exporter:export(typemap, node)
                         print(f)
                     end
                 end

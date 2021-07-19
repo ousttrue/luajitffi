@@ -1,12 +1,12 @@
 local utils = require("utils")
-local typemap = require("typemap")
+local TypeMap = require("typemap")
 local clang = require("clang")
 local C = clang.C
 
 ---@class Param
 ---@field node Node
 ---@field name string
----@field type string
+---@field type Type
 local Param = {}
 
 ---@param node Node
@@ -22,7 +22,7 @@ end
 ---@field dll_export boolean
 ---@field name string
 ---@field params Param[]
----@field return_type string
+---@field result_type Type
 local Function = {
     ---@return string
     __tostring = function(self)
@@ -34,7 +34,7 @@ local Function = {
             assert(p.type)
             return string.format("%s %s", p.type, p.name)
         end)
-        return string.format("%s%s %s(%s)", prefix, self.return_type, self.name, table.concat(params, ", "))
+        return string.format("%s%s %s(%s)", prefix, self.result_type, self.name, table.concat(params, ", "))
     end,
 }
 
@@ -45,7 +45,7 @@ Function.new = function(name)
         dll_export = false,
         name = name,
         params = {},
-        return_type = "void",
+        result_type = "void",
     })
 end
 
@@ -63,33 +63,36 @@ local Exporter = {
     end,
 
     ---@param self Exporter
+    ---@param typemap TypeMap
     ---@param node Node
     ---@return Function
-    export = function(self, node)
+    export = function(self, typemap, node)
         local f = Function.new(node.spelling)
 
-        for path, node in node:traverse() do
-            if node.type == C.CXCursor_FunctionDecl then
-            elseif node.type == C.CXCursor_DLLImport then
+        for path, x in node:traverse() do
+            if x.type == C.CXCursor_FunctionDecl then
+            elseif x.type == C.CXCursor_DLLImport then
                 f.dll_export = true
-            elseif node.type == C.CXCursor_ParmDecl then
-                local param = Param.new(node)
+            elseif x.type == C.CXCursor_ParmDecl then
+                local param = Param.new(x)
+                local cxType = clang.dll.clang_getCursorType(x.cursor)
+                param.type = typemap:get_or_create(x.cursor, cxType)
                 table.insert(f.params, param)
-            elseif node.type == C.CXCursor_TypeRef then
-                if #f.params == 0 then
-                    f.return_type = typemap:get_or_create(node)
-                else
-                    f.params[#f.params].type = typemap:get_or_create(node)
-                end
+            elseif x.type == C.CXCursor_TypeRef then
+                -- if #f.params == 0 then
+                --     f.result_type = typemap:get_reference(node)
+                -- else
+                --     f.params[#f.params].type = typemap:get_reference(node)
+                -- end
             else
-                print(node)
+                print(x)
             end
         end
 
-        for i, p in ipairs(f.params) do
-            if not p.type then
-                p.type = typemap:get_or_create(p.node)
-            end
+        --- return
+        do
+            local cxType = clang.dll.clang_getCursorResultType(node.cursor)
+            f.result_type = typemap:get_or_create(node, cxType)
         end
 
         table.insert(self.functions, f)
