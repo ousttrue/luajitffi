@@ -1,29 +1,42 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local function _walk_after_factory()
-    local walk_after
-    walk_after = function(node)
-        if node.children then
-            for i, child in ipairs(node.children) do
-                walk_after(child)
-            end
-        end
-        coroutine.yield(node)
+local function from_path(root, path)
+    local current = root
+    local i = 1
+    while i <= #path do
+        current = current.children[path[i]]
+        i = i + 1
     end
-    return walk_after
+    return current
 end
-local function _walk_begin_factory()
-    local walk_begin
-    walk_begin = function(node)
-        coroutine.yield(node)
-        if node.children then
-            for i, child in ipairs(node.children) do
-                walk_begin(child)
-            end
-        end
+
+local function traverse(root, stack)
+    if not stack then
+        return {}, root
     end
-    return walk_begin
+
+    local current = from_path(root, stack)
+    if current.children then
+        local child = current.children[1]
+        -- push
+        table.insert(stack, 1)
+        return stack, child
+    end
+
+    while #stack > 0 do
+        local index = table.remove(stack)
+        table.insert(stack, index + 1)
+        local sibling = from_path(root, stack)
+        if sibling then
+            -- sibling
+            return stack, sibling
+        end
+        -- pop
+        table.remove(stack)
+    end
+
+    return nil
 end
 
 ---@class Node
@@ -35,24 +48,8 @@ end
 ---@field indent string
 ---@field formatted string
 local Node = {
-    traverse_after = function(self)
-        local co = coroutine.create(_walk_after_factory())
-        return function()
-            local success, result = coroutine.resume(co, self)
-            if success then
-                return result
-            end
-        end
-    end,
-
-    traverse_begin = function(self)
-        local co = coroutine.create(_walk_begin_factory())
-        return function()
-            local success, result = coroutine.resume(co, self)
-            if success then
-                return result
-            end
-        end
+    traverse = function(self)
+        return traverse, self
     end,
 
     -- ---@param self Node

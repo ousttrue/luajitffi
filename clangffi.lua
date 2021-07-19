@@ -1,4 +1,5 @@
 local Node = require("node")
+local Exporter = require("exporter")
 
 ---@param str string
 ---@param ts string
@@ -297,13 +298,16 @@ local function main(args)
     -- end
 
     for i, export in ipairs(cmd.EXPORTS) do
-        for node in parser.root:traverse_begin() do
+        local exporter = Exporter.new(export.header, export.link)        
+        for path, node in parser.root:traverse() do
             if node.type == parser.ffi.C.CXCursor_FunctionDecl then
                 if node.location == export.header then
-                    node:print()
+                    exporter:export(node)
                 end
             end
         end
+
+        print(exporter)
     end
 end
 
