@@ -71,12 +71,12 @@ CommandLine.parse = function(args)
     return utils.new(CommandLine, instance)
 end
 
----@class Clang
+---@class Parser
 ---@field root Node
 ---@field node_map table<integer, Node>
 ---@field typemap TypeMap
 local Parser = {
-    ---@param self Clang
+    ---@param self Parser
     ---@param exports Export[]
     ---@param cflags string[]
     parse = function(self, exports, cflags)
@@ -97,7 +97,7 @@ local Parser = {
         self:visit_recursive(tu)
     end,
 
-    ---@param self Clang
+    ---@param self Parser
     ---@param path string
     ---@param unsaved_content string
     ---@param cflags string[]
@@ -148,6 +148,7 @@ local Parser = {
         return tu
     end,
 
+    ---@param self Parser
     visit_recursive = function(self, tu)
         local visitor = ffi.cast("CXCursorVisitorP", function(cursor, parent, data)
             self:push(cursor[0], parent[0])
@@ -159,43 +160,40 @@ local Parser = {
         visitor:free()
     end,
 
+    ---@param self Parser
     get_or_create_node = function(self, cursor)
         local c = clang.dll.clang_hashCursor(cursor)
         local node = self.node_map[c]
-        if not node then
-            node = Node.new(cursor, c)
-            self.node_map[node.hash] = node
-
-            if cursor.kind == C.CXCursor_FunctionDecl then
-                local cxType = clang.dll.clang_getCursorResultType(cursor)
-                node.result_type = self.typemap:get_or_create(node, cxType)
-            elseif cursor.kind == C.CXCursor_DLLImport then
-                node.dll_export = true
-            elseif cursor.kind == C.CXCursor_ParmDecl then
-                -- local param = Param.new(cursor)
-                -- if cursor.children then
-                --     assert(false)
-                -- else
-                --     local cxType = clang.dll.clang_getCursorType(cursor.cursor)
-                --     param.type = typemap:get_or_create(cursor.cursor, cxType, cursor)
-                --     table.insert(f.params, param)
-                -- end
-            elseif cursor.kind == C.CXCursor_TypeRef then
-                -- if #f.params == 0 then
-                --     f.result_type = typemap:get_reference(node)
-                -- else
-                --     f.params[#f.params].type = typemap:get_reference(node)
-                -- end
-            else
-                -- print(cursor)
-            end
-
-            -- --- return
-            -- do
-            --     local cxType = clang.dll.clang_getCursorResultType(node.cursor)
-            --     f.result_type = typemap:get_or_create(node.cursor, cxType, node)
-            -- end
+        if node then
+            return node
         end
+
+        node = Node.new(cursor, c)
+        self.node_map[c] = node
+
+        if cursor.kind == C.CXCursor_FunctionDecl then
+            local cxType = clang.dll.clang_getCursorResultType(cursor)
+            node.result_type = self.typemap:get_or_create(node, cxType)
+        elseif cursor.kind == C.CXCursor_DLLImport then
+            node.dll_export = true
+        elseif cursor.kind == C.CXCursor_ParmDecl then
+            local cxType = clang.dll.clang_getCursorType(cursor)
+            node.param_type = self.typemap:get_or_create(node, cxType)
+        elseif cursor.kind == C.CXCursor_TypeRef then
+            -- if #f.params == 0 then
+            --     f.result_type = typemap:get_reference(node)
+            -- else
+            --     f.params[#f.params].type = typemap:get_reference(node)
+            -- end
+        else
+            -- print(cursor)
+        end
+
+        -- --- return
+        -- do
+        --     local cxType = clang.dll.clang_getCursorResultType(node.cursor)
+        --     f.result_type = typemap:get_or_create(node.cursor, cxType, node)
+        -- end
         return node
     end,
 
@@ -218,11 +216,13 @@ local Parser = {
     --     end
     -- end,
 
+    ---@param self Parser
     set_root = function(self, cursor)
         self.root = self:get_or_create_node(cursor)
         self.root.indent = ""
     end,
 
+    ---@param self Parser
     push = function(self, cursor, parent_cursor)
         local node = self:get_or_create_node(cursor)
 
@@ -236,7 +236,7 @@ local Parser = {
     end,
 }
 
----@return Clang
+---@return Parser
 Parser.new = function()
     return utils.new(Parser, {
         ffi = ffi,
@@ -269,10 +269,10 @@ local function main(args)
                 -- skip
             else
                 if node.cursor_kind == clang.C.CXCursor_FunctionDecl then
-                    if node.location == export.header then
+                    if node.location.path == export.header then
                         used[node] = true
 
-                        local f = exporter:export(node)
+                        local f = exporter:export_function(node)
                         print(f)
                     end
                 end

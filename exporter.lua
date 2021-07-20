@@ -32,7 +32,7 @@ local Function = {
         end
         local params = utils.map(self.params, function(p)
             assert(p.cursor_kind)
-            return string.format("%s %s", p.cursor_kind, p.name)
+            return string.format("%s %s", p.param_type, p.spelling)
         end)
         return string.format("%s%s %s(%s)", prefix, self.result_type, self.name, table.concat(params, ", "))
     end,
@@ -65,8 +65,12 @@ local Exporter = {
     ---@param self Exporter
     ---@param node Node
     ---@return Function
-    export = function(self, node)
+    export_function = function(self, node)
         local f = Function.new(node)
+        local params = utils.filter(node.children, function(c)
+            return c.cursor_kind == C.CXCursor_ParmDecl
+        end)
+        f.params = params
         table.insert(self.functions, f)
         return f
     end,

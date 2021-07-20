@@ -37,7 +37,11 @@ M.get_location = function(cursor)
     M.dll.clang_getSpellingLocation(location, file, line, column, offset)
     local path = M.get_spelling_from_file(file[0])
     if path then
-        return path
+        return {
+            path = path,
+            line = line[0],
+            column = column[0],
+        }
     end
 end
 

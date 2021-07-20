@@ -10,9 +10,12 @@ local Type = {
         if self.pointer then
             return tostring(self.pointer) .. "*"
         else
-            if self.node then
+            if self.node and self.node.children then
                 -- first typedef
-                return string.format("%s = %s", self.type, self.node.children[2].spelling)
+                local filtered = utils.filter(self.node.children, function(c)
+                    return c.cursor_kind == C.CXCursor_TypeRef
+                end)
+                return string.format("%s", filtered[1].spelling)
             else
                 return self.type
             end
@@ -79,12 +82,33 @@ local TypeMap = {
             return primitive
         end
 
-        -- pointer
-        if cxType.kind == C.CXType_Pointer then
-            local pointee = clang.dll.clang_getPointeeType(cxType)
-            local base_type = self:get_or_create(node, pointee)
+        if cxType.kind == C.CXType_Unexposed then
+            -- template T ?
             return utils.new(Type, {
-                pointer = base_type,
+                type = "unexposed",
+            })
+        end
+
+        -- pointer
+        if cxType.kind == C.CXType_Pointer or cxType.kind == C.CXType_LValueReference then
+            local pointeeCxType = clang.dll.clang_getPointeeType(cxType)
+            local pointeeType = self:get_or_create(node, pointeeCxType)
+            return utils.new(Type, {
+                pointer = pointeeType,
+            })
+        elseif cxType.kind == C.CXType_DependentSizedArray then
+            local elementCxType = clang.dll.clang_getArrayElementType(cxType)
+            local elementType = self:get_or_create(node, elementCxType)
+            return utils.new(Type, {
+                array = elementType,
+            })
+        end
+
+        -- function pointer
+        if cxType.kind == C.CXType_FunctionProto then
+            -- void (*fn)(void *)
+            return utils.new(Type, {
+                type = "function",
             })
         end
 
@@ -108,6 +132,7 @@ local TypeMap = {
     end,
 }
 
+---@return TypeMap
 TypeMap.new = function()
     return utils.new(TypeMap, {
         typemap = {},
