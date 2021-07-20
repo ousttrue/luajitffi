@@ -9,6 +9,8 @@ local Type = {
     __tostring = function(self)
         if self.pointer then
             return tostring(self.pointer) .. "*"
+        elseif self.base_type then
+            return string.format("typedef %s = %s", self.name, self.base_type)
         else
             if self.node and self.node.children then
                 -- first typedef
@@ -67,15 +69,12 @@ local primitives = {
 }
 
 ---@class TypeMap
----@field typemap Table<integer, Type>
 local TypeMap = {
     ---@param self TypeMap
-    ---@param node Node
-    get_or_create = function(self, node, cxType)
-        local t = self.typemap[node]
-        if t then
-            return t
-        end
+    ---@param cxType any
+    ---@param cursor any
+    type_from_cx_type = function(self, cxType, cursor)
+        local is_const = clang.dll.clang_isConstQualifiedType(cxType) ~= 0
 
         local primitive = primitives[tonumber(cxType.kind)]
         if primitive then
@@ -86,22 +85,22 @@ local TypeMap = {
             -- template T ?
             return utils.new(Type, {
                 type = "unexposed",
-            })
+            }), is_const
         end
 
         -- pointer
         if cxType.kind == C.CXType_Pointer or cxType.kind == C.CXType_LValueReference then
             local pointeeCxType = clang.dll.clang_getPointeeType(cxType)
-            local pointeeType = self:get_or_create(node, pointeeCxType)
+            local pointeeType, _is_const = self:type_from_cx_type(pointeeCxType, cursor)
             return utils.new(Type, {
                 pointer = pointeeType,
-            })
+            }), is_const
         elseif cxType.kind == C.CXType_DependentSizedArray then
             local elementCxType = clang.dll.clang_getArrayElementType(cxType)
-            local elementType = self:get_or_create(node, elementCxType)
+            local elementType, _is_const = self:type_from_cx_type(elementCxType, cursor)
             return utils.new(Type, {
                 array = elementType,
-            })
+            }), is_const
         end
 
         -- function pointer
@@ -109,26 +108,41 @@ local TypeMap = {
             -- void (*fn)(void *)
             return utils.new(Type, {
                 type = "function",
-            })
+            }), is_const
         end
 
-        -- user type
-        if cxType.kind == C.CXType_Typedef then
-            t = utils.new(Type, {
-                type = "typedef",
-                node = node,
-            })
-        elseif cxType.kind == C.CXType_Elaborated then
-            t = utils.new(Type, {
-                type = "elaborated",
-                node = node,
-            })
-        else
-            assert(false)
-        end
+        -- -- user type
+        -- if cxType.kind == C.CXType_Typedef then
+        --     t = utils.new(Type, {
+        --         type = "typedef",
+        --     })
+        -- elseif cxType.kind == C.CXType_Elaborated then
+        --     t = utils.new(Type, {
+        --         type = "elaborated",
+        --     })
+        -- else
+        --     assert(false)
+        -- end
 
-        self.typemap[node] = t
-        return t
+        -- self.typemap[node] = t
+        -- return t
+    end,
+
+    ---@param self TypeMap
+    ---@param cursor any
+    ---@return Type
+    create_typedef = function(self, cursor)
+        local underlying = clang.dll.clang_getTypedefDeclUnderlyingType(cursor)
+        local base_type, _is_const = self:type_from_cx_type(underlying, cursor)
+        if base_type then
+            local c = clang.dll.clang_hashCursor(cursor)
+            local t = utils.new(Type, {
+                name = clang.get_spelling_from_cursor(cursor),
+                -- type = "typedef",
+                base_type = base_type,
+            })
+            return t
+        end
     end,
 }
 

@@ -99,52 +99,11 @@ lua clangffi.lua
     local parser = Parser.new()
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
-    -- traverse
-    local exporter = Exporter.new()
-    for i, export in ipairs(cmd.EXPORTS) do
-        exporter:get_or_create_header(export.header)
-    end
-
-    local used = {}
-    for path, node in parser.root:traverse() do
-        if used[node] then
-            -- skip
-        else
-            used[node] = true
-            if node.location then
-                local f = exporter:export(node)
-            end
+    for hash, node in pairs(parser.node_map) do
+        if node.type then
+            print(node)
         end
     end
-
-    -- generate
-    -- print(cmd.OUT_DIR)
-    if is_exists(cmd.OUT_DIR) then
-        print(string.format("rmdir %s", cmd.OUT_DIR))
-        lfs.rmdir(cmd.OUT_DIR)
-    end
-    mkdirp(cmd.OUT_DIR)
-
-    for header, export_header in pairs(exporter.headers) do
-        local dir, name, ext = utils.split_ext(header)
-        -- print(dir, name, ext)
-        local path = string.format("%s/%s_cdef.lua", cmd.OUT_DIR, name)
-
-        print(string.format("generate: %s ...", path))
-
-        local w = io.open(path, "wb")
-        w:write("-- this is generated\n")
-        w:write("local ffi = require 'ffi'\n")
-        w:write("ffi.cdef[[\n")
-
-        for i, f in ipairs(export_header.functions) do
-            w:write(string.format("%s;\n", f))
-        end
-
-        w:write("]]")
-    end
-
-    -- print(path)
 end
 
 main({ ... })
