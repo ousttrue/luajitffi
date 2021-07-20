@@ -40,10 +40,13 @@ local Function = {
 ---@param node Node
 ---@return Function
 Function.new = function(node)
+    local params = utils.filter(node.children, function(c)
+        return c.cursor_kind == C.CXCursor_ParmDecl
+    end)
     return utils.new(Function, {
         dll_export = node.dll_export,
         name = node.spelling,
-        params = {},
+        params = params,
         result_type = node.result_type,
     })
 end
@@ -56,7 +59,7 @@ local Exporter = {
 
     ---@return string
     __tostring = function(self)
-        local result = "// " .. self.header .. "\n"
+        local result = "// " .. self.link .. "\n"
         for i, f in ipairs(self.functions) do
             result = result .. string.format("%s\n", f)
         end
@@ -68,10 +71,6 @@ local Exporter = {
     ---@return Function
     export_function = function(self, node)
         local f = Function.new(node)
-        local params = utils.filter(node.children, function(c)
-            return c.cursor_kind == C.CXCursor_ParmDecl
-        end)
-        f.params = params
         table.insert(self.functions, f)
         return f
     end,

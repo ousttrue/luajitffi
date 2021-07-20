@@ -107,6 +107,7 @@ lua clangffi.lua
             exporter = Exporter.new(export.link)
             exporters[exporter.link] = exporter
         end
+        table.insert(exporter.headers, export.header)
     end
     local used = {}
     for path, node in parser.root:traverse() do
@@ -133,13 +134,25 @@ lua clangffi.lua
     end
     mkdirp(cmd.OUT_DIR)
 
-    for k, v in pairs(exporters) do
-        local dir, name, ext = utils.split_ext(k)
-        print(dir, name, ext)
-        local path = string.format("%s/%s.lua", cmd.OUT_DIR, name)
+    for link, exporter in pairs(exporters) do
+        local dir, name, ext = utils.split_ext(link)
+        local path = string.format("%s/%s_cdef.lua", cmd.OUT_DIR, name)
 
-        -- print(path)
+        print(string.format("generate: %s ...", path))
+
+        local w = io.open(path, "wb")
+        w:write("-- this is generated\n")
+        w:write("local ffi = require 'ffi'\n")
+        w:write("ffi.cdef[[\n")
+
+        for i, f in ipairs(exporter.functions) do
+            w:write(string.format("%s;\n", f))
+        end
+
+        w:write("]]")
     end
+
+    -- print(path)
 end
 
 main({ ... })
