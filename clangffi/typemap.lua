@@ -1,5 +1,5 @@
-local utils = require("utils")
-local clang = require("clang")
+local utils = require("clangffi.utils")
+local clang = require("clangffi.clang")
 local C = clang.C
 
 ---@class Type

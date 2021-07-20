@@ -10,7 +10,7 @@
             "request": "launch",
             "program": {
                 "lua": "${workspaceFolder}/lua/bin/lua.exe",
-                "file": "${workspaceFolder}/clangffi.lua"
+                "file": "${workspaceFolder}/main.lua"
             },
             "args": [
                 "-IC:/Program Files/LLVM/include",

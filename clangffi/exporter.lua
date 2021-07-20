@@ -1,6 +1,5 @@
-local utils = require("utils")
-local TypeMap = require("typemap")
-local clang = require("clang")
+local utils = require("clangffi.utils")
+local clang = require("clangffi.clang")
 local C = clang.C
 
 ---@class Param
@@ -50,6 +49,8 @@ Function.new = function(node)
 end
 
 ---@class Exporter
+---@field header string
+---@field link string
 ---@field functions Function[]
 local Exporter = {
 
@@ -73,6 +74,17 @@ local Exporter = {
         f.params = params
         table.insert(self.functions, f)
         return f
+    end,
+
+    ---@param self Exporter
+    ---@param node Node
+    export = function(self, node)
+        if node.cursor_kind == clang.C.CXCursor_FunctionDecl then
+            if node.location.path == self.header then
+                local f = self:export_function(node)
+                return f
+            end
+        end
     end,
 }
 

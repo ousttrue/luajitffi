@@ -1,6 +1,6 @@
 local ffi = require("ffi")
-local clang = require("clang")
-local utils = require("utils")
+local clang = require("clangffi.clang")
+local utils = require("clangffi.utils")
 
 local function from_path(root, path)
     local current = root
@@ -40,12 +40,17 @@ local function traverse(root, stack)
     return nil
 end
 
+---@class Location
+---@field path string
+---@field line integer
+---@field column integer
+
 ---@class Node
 ---@field hash integer
 ---@field children Node[]
 ---@field cursor_kind any
 ---@field spelling string
----@field location string
+---@field location Location
 ---@field indent string
 ---@field formatted string
 local Node = {
@@ -61,7 +66,6 @@ local Node = {
         return string.format("%s%q: %s", self.indent, self.cursor_kind, self.spelling)
     end,
 }
-
 
 ---@param cursor any
 ---@param c integer
