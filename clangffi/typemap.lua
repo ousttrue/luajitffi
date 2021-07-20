@@ -10,7 +10,7 @@ local Type = {
         if self.pointer then
             return tostring(self.pointer) .. "*"
         elseif self.base_type then
-            return string.format("typedef %s = %s", self.name, self.base_type)
+            return string.format("typedef %s => %s", self.name, self.base_type)
         else
             if self.node and self.node.children then
                 -- first typedef
@@ -28,6 +28,11 @@ local Type = {
 local Void = utils.new(Type, {
     type = "void",
 })
+
+local Bool = utils.new(Type, {
+    type = "bool",
+})
+
 local UInt16 = utils.new(Type, {
     type = "unsigned short",
 })
@@ -54,6 +59,8 @@ local Double = utils.new(Type, {
 
 local primitives = {
     [C.CXType_Void] = Void,
+
+    [C.CXType_Bool] = Bool,
 
     [C.CXType_WChar] = UInt16, -- Windows
     [C.CXType_UShort] = UInt16,
@@ -111,21 +118,18 @@ local TypeMap = {
             }), is_const
         end
 
-        -- -- user type
-        -- if cxType.kind == C.CXType_Typedef then
-        --     t = utils.new(Type, {
-        --         type = "typedef",
-        --     })
-        -- elseif cxType.kind == C.CXType_Elaborated then
-        --     t = utils.new(Type, {
-        --         type = "elaborated",
-        --     })
-        -- else
-        --     assert(false)
-        -- end
+        -- user type
+        if cxType.kind == C.CXType_Typedef then
+            return utils.new(Type, {
+                type = "typedef",
+            })
+        elseif cxType.kind == C.CXType_Elaborated then
+            return utils.new(Type, {
+                type = "elaborated",
+            })
+        end
 
-        -- self.typemap[node] = t
-        -- return t
+        assert(false)
     end,
 
     ---@param self TypeMap
@@ -134,15 +138,17 @@ local TypeMap = {
     create_typedef = function(self, cursor)
         local underlying = clang.dll.clang_getTypedefDeclUnderlyingType(cursor)
         local base_type, _is_const = self:type_from_cx_type(underlying, cursor)
-        if base_type then
-            local c = clang.dll.clang_hashCursor(cursor)
-            local t = utils.new(Type, {
-                name = clang.get_spelling_from_cursor(cursor),
-                -- type = "typedef",
-                base_type = base_type,
-            })
-            return t
+        if not base_type then
+            return
         end
+
+        local c = clang.dll.clang_hashCursor(cursor)
+        local t = utils.new(Type, {
+            name = clang.get_spelling_from_cursor(cursor),
+            -- type = "typedef",
+            base_type = base_type,
+        })
+        return t
     end,
 }
 

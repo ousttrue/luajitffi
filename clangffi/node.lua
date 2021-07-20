@@ -40,11 +40,6 @@ local function traverse(root, stack)
     return nil
 end
 
----@class Location
----@field path string
----@field line integer
----@field column integer
-
 ---@class Node
 ---@field hash integer
 ---@field children Node[]
@@ -53,6 +48,7 @@ end
 ---@field location Location
 ---@field indent string
 ---@field formatted string
+---@field type Type
 local Node = {
 
     ---@param self Node

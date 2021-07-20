@@ -101,7 +101,7 @@ lua clangffi.lua
 
     for hash, node in pairs(parser.node_map) do
         if node.type then
-            print(node)
+            print(node.location, node.type)
         end
     end
 end
