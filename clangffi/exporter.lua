@@ -37,29 +37,29 @@ local Function = {
     end,
 }
 
----@param node Node
----@return Function
-Function.new = function(node)
-    local params = utils.filter(node.children, function(c)
-        return c.cursor_kind == C.CXCursor_ParmDecl
-    end)
-    return utils.new(Function, {
-        dll_export = node.dll_export,
-        name = node.spelling,
-        params = params,
-        result_type = node.result_type,
+---@class ExportHeader
+---@field header string
+---@field types Type[]
+---@field functions Function[]
+local ExportHeader = {}
+
+---@param header string
+---@return ExportHeader
+ExportHeader.new = function(header)
+    return utils.new(ExportHeader, {
+        header = header,
+        types = {},
+        functions = {},
     })
 end
 
 ---@class Exporter
----@field link string
----@field headers string[]
----@field functions Function[]
+---@field headers Table<string, ExportHeader>
 local Exporter = {
 
     ---@return string
     __tostring = function(self)
-        local result = "// " .. self.link .. "\n"
+        local result = ""
         for i, f in ipairs(self.functions) do
             result = result .. string.format("%s\n", f)
         end
@@ -67,25 +67,52 @@ local Exporter = {
     end,
 
     ---@param self Exporter
+    ---@param export_header ExportHeader
     ---@param node Node
     ---@return Function
-    export_function = function(self, node)
-        local f = Function.new(node)
-        table.insert(self.functions, f)
+    export_function = function(self, export_header, node)
+        local params = {}
+        if node.children then
+            params = utils.filter(node.children, function(c)
+                return c.cursor_kind == C.CXCursor_ParmDecl
+            end)
+        end
+        local f = utils.new(Function, {
+            dll_export = node.dll_export,
+            name = node.spelling,
+            params = params,
+            result_type = node.result_type,
+        })
+        table.insert(export_header.functions, f)
         return f
+    end,
+
+    ---@param self Exporter
+    ---@param path string
+    ---@return ExportHeader
+    get_or_create_header = function(self, path)
+        local export_header = self.headers[path]
+        if not export_header then
+            export_header = ExportHeader.new(path)
+            self.headers[path] = export_header
+        end
+        return export_header
     end,
 
     ---@param self Exporter
     ---@param node Node
     export = function(self, node)
-        if node.cursor_kind == clang.C.CXCursor_FunctionDecl then
-            for i, header in ipairs(self.headers) do
-                if node.location.path == header then
-                    local f = self:export_function(node)
-                    return f
-                end
-            end
+        if node.cursor_kind ~= clang.C.CXCursor_FunctionDecl then
+            return
         end
+
+        local export_header = self.headers[node.location.path]
+        if not export_header then
+            return
+        end
+
+        local f = self:export_function(export_header, node)
+        return f
     end,
 }
 

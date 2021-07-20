@@ -61,7 +61,7 @@ M.split_ext = function(path)
     if basename then
         local d = string.find(basename, "([^/.]+)$")
         if d then
-            return dir, path:sub(1, d - 2), path:sub(d - 1)
+            return dir, basename:sub(1, d - 2), basename:sub(d - 1)
         end
     end
 end

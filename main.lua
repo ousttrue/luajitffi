@@ -100,15 +100,11 @@ lua clangffi.lua
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
     -- traverse
-    local exporters = {}
+    local exporter = Exporter.new()
     for i, export in ipairs(cmd.EXPORTS) do
-        local exporter = exporters[export.link]
-        if not exporter then
-            exporter = Exporter.new(export.link)
-            exporters[exporter.link] = exporter
-        end
-        table.insert(exporter.headers, export.header)
+        exporter:get_or_create_header(export.header)
     end
+
     local used = {}
     for path, node in parser.root:traverse() do
         if used[node] then
@@ -116,12 +112,7 @@ lua clangffi.lua
         else
             used[node] = true
             if node.location then
-                for link, exporter in pairs(exporters) do
-                    local f = exporter:export(node)
-                    if f then
-                        break
-                    end
-                end
+                local f = exporter:export(node)
             end
         end
     end
@@ -134,8 +125,9 @@ lua clangffi.lua
     end
     mkdirp(cmd.OUT_DIR)
 
-    for link, exporter in pairs(exporters) do
-        local dir, name, ext = utils.split_ext(link)
+    for header, export_header in pairs(exporter.headers) do
+        local dir, name, ext = utils.split_ext(header)
+        -- print(dir, name, ext)
         local path = string.format("%s/%s_cdef.lua", cmd.OUT_DIR, name)
 
         print(string.format("generate: %s ...", path))
@@ -145,7 +137,7 @@ lua clangffi.lua
         w:write("local ffi = require 'ffi'\n")
         w:write("ffi.cdef[[\n")
 
-        for i, f in ipairs(exporter.functions) do
+        for i, f in ipairs(export_header.functions) do
             w:write(string.format("%s;\n", f))
         end
 
