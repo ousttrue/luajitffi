@@ -37,6 +37,10 @@ M.filter = function(t, f)
     return dst
 end
 
+---@generic T
+---@param class_table T
+---@param instance_table any
+---@return T
 M.new = function(class_table, instance_table)
     class_table.__index = class_table
     return setmetatable(instance_table, class_table)

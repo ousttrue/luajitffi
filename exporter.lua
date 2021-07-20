@@ -31,21 +31,21 @@ local Function = {
             prefix = "extern "
         end
         local params = utils.map(self.params, function(p)
-            assert(p.type)
-            return string.format("%s %s", p.type, p.name)
+            assert(p.cursor_kind)
+            return string.format("%s %s", p.cursor_kind, p.name)
         end)
         return string.format("%s%s %s(%s)", prefix, self.result_type, self.name, table.concat(params, ", "))
     end,
 }
 
----@param name string
+---@param node Node
 ---@return Function
-Function.new = function(name)
+Function.new = function(node)
     return utils.new(Function, {
-        dll_export = false,
-        name = name,
+        dll_export = node.dll_export,
+        name = node.spelling,
         params = {},
-        result_type = "void",
+        result_type = node.result_type,
     })
 end
 
@@ -63,38 +63,10 @@ local Exporter = {
     end,
 
     ---@param self Exporter
-    ---@param typemap TypeMap
     ---@param node Node
     ---@return Function
-    export = function(self, typemap, node)
-        local f = Function.new(node.spelling)
-
-        for path, x in node:traverse() do
-            if x.type == C.CXCursor_FunctionDecl then
-            elseif x.type == C.CXCursor_DLLImport then
-                f.dll_export = true
-            elseif x.type == C.CXCursor_ParmDecl then
-                local param = Param.new(x)
-                local cxType = clang.dll.clang_getCursorType(x.cursor)
-                param.type = typemap:get_or_create(x.cursor, cxType)
-                table.insert(f.params, param)
-            elseif x.type == C.CXCursor_TypeRef then
-                -- if #f.params == 0 then
-                --     f.result_type = typemap:get_reference(node)
-                -- else
-                --     f.params[#f.params].type = typemap:get_reference(node)
-                -- end
-            else
-                print(x)
-            end
-        end
-
-        --- return
-        do
-            local cxType = clang.dll.clang_getCursorResultType(node.cursor)
-            f.result_type = typemap:get_or_create(node, cxType)
-        end
-
+    export = function(self, node)
+        local f = Function.new(node)
         table.insert(self.functions, f)
         return f
     end,

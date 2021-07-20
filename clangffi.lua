@@ -3,6 +3,7 @@ local Exporter = require("exporter")
 local utils = require("utils")
 local ffi = require("ffi")
 local clang = require("clang")
+local C = clang.C
 local TypeMap = require("typemap")
 
 ---@class Export
@@ -73,6 +74,7 @@ end
 ---@class Clang
 ---@field root Node
 ---@field node_map table<integer, Node>
+---@field typemap TypeMap
 local Parser = {
     ---@param self Clang
     ---@param exports Export[]
@@ -163,9 +165,58 @@ local Parser = {
         if not node then
             node = Node.new(cursor, c)
             self.node_map[node.hash] = node
+
+            if cursor.kind == C.CXCursor_FunctionDecl then
+                local cxType = clang.dll.clang_getCursorResultType(cursor)
+                node.result_type = self.typemap:get_or_create(node, cxType)
+            elseif cursor.kind == C.CXCursor_DLLImport then
+                node.dll_export = true
+            elseif cursor.kind == C.CXCursor_ParmDecl then
+                -- local param = Param.new(cursor)
+                -- if cursor.children then
+                --     assert(false)
+                -- else
+                --     local cxType = clang.dll.clang_getCursorType(cursor.cursor)
+                --     param.type = typemap:get_or_create(cursor.cursor, cxType, cursor)
+                --     table.insert(f.params, param)
+                -- end
+            elseif cursor.kind == C.CXCursor_TypeRef then
+                -- if #f.params == 0 then
+                --     f.result_type = typemap:get_reference(node)
+                -- else
+                --     f.params[#f.params].type = typemap:get_reference(node)
+                -- end
+            else
+                -- print(cursor)
+            end
+
+            -- --- return
+            -- do
+            --     local cxType = clang.dll.clang_getCursorResultType(node.cursor)
+            --     f.result_type = typemap:get_or_create(node.cursor, cxType, node)
+            -- end
         end
         return node
     end,
+
+    -- ---@param self Node
+    -- process = function(self)
+    --     if self.formatted then
+    --         return
+    --     end
+
+    --     if self.type == C.CXCursor_TranslationUnit then
+    --     elseif self.type == C.CXCursor_MacroDefinition then
+    --     elseif self.type == C.CXCursor_MacroExpansion then
+    --     elseif self.type == C.CXCursor_InclusionDirective then
+    --     elseif self.type == C.CXCursor_TypedefDecl then
+    --         -- self.formatted = string.format("%d: typedef %s", self.hash, self.spelling)
+    --     elseif self.type == C.CXCursor_FunctionDecl then
+    --         self.formatted = string.format("%s: function %s()", self.location, self.spelling)
+    --     else
+    --         -- self.formatted = string.format("%d: %q %s", self.hash, self.type, self.spelling)
+    --     end
+    -- end,
 
     set_root = function(self, cursor)
         self.root = self:get_or_create_node(cursor)
@@ -191,6 +242,7 @@ Parser.new = function()
         ffi = ffi,
         clang = clang,
         node_map = {},
+        typemap = TypeMap.new(),
     })
 end
 
@@ -209,8 +261,6 @@ local function main(args)
 
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
-    local typemap = TypeMap.new()
-
     local used = {}
     for i, export in ipairs(cmd.EXPORTS) do
         local exporter = Exporter.new(export.header, export.link)
@@ -218,11 +268,11 @@ local function main(args)
             if used[node] then
                 -- skip
             else
-                if node.type == clang.C.CXCursor_FunctionDecl then
+                if node.cursor_kind == clang.C.CXCursor_FunctionDecl then
                     if node.location == export.header then
                         used[node] = true
 
-                        local f = exporter:export(typemap, node)
+                        local f = exporter:export(node)
                         print(f)
                     end
                 end
