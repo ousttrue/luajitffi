@@ -9,10 +9,12 @@ luajit FFI generator using libclang
 
 ```
 > hererocks.exe -j 2.1.0-beta3 -r latest lua
+> . ./lua/bin/activate.ps1
+> luarocks install luafilesystem
 ```
 
 ## Usage
 
 ```
-> lua/bin/lua.exe clangffi.lua
+> lua/bin/lua.exe main.lua
 ```

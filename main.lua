@@ -1,6 +1,7 @@
 local utils = require("clangffi.utils")
 local Parser = require("clangffi.parser")
 local Exporter = require("clangffi.exporter")
+local lfs = require("lfs")
 
 ---@class Export
 ---@field header string
@@ -67,6 +68,23 @@ CommandLine.parse = function(args)
     return utils.new(CommandLine, instance)
 end
 
+local function is_exists(path)
+    if lfs.attributes(path) then
+        return true
+    end
+end
+
+local function mkdirp(dir)
+    local parent, basename = utils.split_basename(dir)
+    if parent and parent ~= "." then
+        if not is_exists(parent) then
+            mkdirp(parent)
+        end
+    end
+    print(string.format("mkdir %s", dir))
+    lfs.mkdir(dir)
+end
+
 ---@param args string[]
 local function main(args)
     local usage = [[usage:
@@ -84,8 +102,11 @@ lua clangffi.lua
     -- traverse
     local exporters = {}
     for i, export in ipairs(cmd.EXPORTS) do
-        local exporter = Exporter.new(export.header, export.link)
-        exporters[exporter.header] = exporter
+        local exporter = exporters[export.link]
+        if not exporter then
+            exporter = Exporter.new(export.link)
+            exporters[exporter.link] = exporter
+        end
     end
     local used = {}
     for path, node in parser.root:traverse() do
@@ -94,11 +115,10 @@ lua clangffi.lua
         else
             used[node] = true
             if node.location then
-                local exporter = exporters[node.location.path]
-                if exporter then
+                for link, exporter in pairs(exporters) do
                     local f = exporter:export(node)
                     if f then
-                        print(f)
+                        break
                     end
                 end
             end
@@ -106,6 +126,20 @@ lua clangffi.lua
     end
 
     -- generate
+    -- print(cmd.OUT_DIR)
+    if is_exists(cmd.OUT_DIR) then
+        print(string.format("rmdir %s", cmd.OUT_DIR))
+        lfs.rmdir(cmd.OUT_DIR)
+    end
+    mkdirp(cmd.OUT_DIR)
+
+    for k, v in pairs(exporters) do
+        local dir, name, ext = utils.split_ext(k)
+        print(dir, name, ext)
+        local path = string.format("%s/%s.lua", cmd.OUT_DIR, name)
+
+        -- print(path)
+    end
 end
 
 main({ ... })

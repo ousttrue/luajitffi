@@ -46,4 +46,24 @@ M.new = function(class_table, instance_table)
     return setmetatable(instance_table, class_table)
 end
 
+M.split_basename = function(path)
+    local d = string.find(path, "([^/\\]+)$")
+    if d then
+        if d == 1 then
+            return nil, path
+        end
+        return path:sub(1, d - 2), path:sub(d)
+    end
+end
+
+M.split_ext = function(path)
+    local dir, basename = M.split_basename(path)
+    if basename then
+        local d = string.find(basename, "([^/.]+)$")
+        if d then
+            return dir, path:sub(1, d - 2), path:sub(d - 1)
+        end
+    end
+end
+
 return M

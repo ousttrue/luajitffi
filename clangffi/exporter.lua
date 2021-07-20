@@ -49,8 +49,8 @@ Function.new = function(node)
 end
 
 ---@class Exporter
----@field header string
 ---@field link string
+---@field headers string[]
 ---@field functions Function[]
 local Exporter = {
 
@@ -80,20 +80,21 @@ local Exporter = {
     ---@param node Node
     export = function(self, node)
         if node.cursor_kind == clang.C.CXCursor_FunctionDecl then
-            if node.location.path == self.header then
-                local f = self:export_function(node)
-                return f
+            for i, header in ipairs(self.headers) do
+                if node.location.path == header then
+                    local f = self:export_function(node)
+                    return f
+                end
             end
         end
     end,
 }
 
----@param header string
 ---@param link string
 ---@return Exporter
-Exporter.new = function(header, link)
+Exporter.new = function(link)
     return utils.new(Exporter, {
-        header = header,
+        headers = {},
         link = link,
         functions = {},
     })
