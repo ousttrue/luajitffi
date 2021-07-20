@@ -9,18 +9,18 @@ local Type = {
     __tostring = function(self)
         if self.pointer then
             return tostring(self.pointer) .. "*"
-        elseif self.base_type then
-            return string.format("typedef %s => %s", self.name, self.base_type)
-        else
-            if self.node and self.node.children then
-                -- first typedef
-                local filtered = utils.filter(self.node.children, function(c)
-                    return c.cursor_kind == C.CXCursor_TypeRef
-                end)
-                return string.format("%s", filtered[1].spelling)
+        elseif self.type then
+            if self.type == "typedef" then
+                return string.format("typedef %s => %s", self.name, self.base_type)
+            elseif self.type == "enum" then
+                return string.format("enum %s", self.name)
+            elseif self.type == "struct" then
+                return string.format("struct %s", self.name)
             else
                 return self.type
             end
+        else
+            assert(false)
         end
     end,
 }
@@ -135,6 +135,24 @@ local TypeMap = {
     ---@param self TypeMap
     ---@param cursor any
     ---@return Type
+    create_enum = function(self, cursor)
+        local cx_type = clang.dll.clang_getEnumDeclIntegerType(cursor)
+        local base_type, _is_const = self:type_from_cx_type(cx_type, cursor)
+        if not base_type then
+            return
+        end
+
+        local t = utils.new(Type, {
+            name = clang.get_spelling_from_cursor(cursor),
+            type = "enum",
+            base_type = base_type,
+        })
+        return t
+    end,
+
+    ---@param self TypeMap
+    ---@param cursor any
+    ---@return Type
     create_typedef = function(self, cursor)
         local underlying = clang.dll.clang_getTypedefDeclUnderlyingType(cursor)
         local base_type, _is_const = self:type_from_cx_type(underlying, cursor)
@@ -142,11 +160,21 @@ local TypeMap = {
             return
         end
 
-        local c = clang.dll.clang_hashCursor(cursor)
         local t = utils.new(Type, {
             name = clang.get_spelling_from_cursor(cursor),
-            -- type = "typedef",
+            type = "typedef",
             base_type = base_type,
+        })
+        return t
+    end,
+
+    ---@param self TypeMap
+    ---@param cursor any
+    ---@return Type
+    create_struct = function(self, cursor)
+        local t = utils.new(Type, {
+            name = clang.get_spelling_from_cursor(cursor),
+            type = "struct",
         })
         return t
     end,

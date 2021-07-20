@@ -134,16 +134,24 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_IntegerLiteral then
             -- literal
         elseif cursor.kind == C.CXCursor_FunctionDecl then
+            node.type = "function"
             -- local cxType = clang.dll.clang_getCursorResultType(cursor)
             -- node.result_type = self.typemap:get_or_create(node, cxType)
         elseif cursor.kind == C.CXCursor_DLLImport then
             node.dll_export = true
         elseif cursor.kind == C.CXCursor_ParmDecl then
-            -- local cxType = clang.dll.clang_getCursorType(cursor)
-            -- node.param_type = self.typemap:get_or_create(node, cxType)
+            local parent_c = clang.dll.clang_hashCursor(parent_cursor)
+            local parent = self.node_map[parent_c]
+            local cxType = clang.dll.clang_getCursorType(cursor)
+            node.param_type = self.typemap:type_from_cx_type(cxType, cursor)
         elseif cursor.kind == C.CXCursor_FieldDecl then
-            --
+            local parent_c = clang.dll.clang_hashCursor(parent_cursor)
+            local parent = self.node_map[parent_c]
+            local a = 0
         elseif cursor.kind == C.CXCursor_TypeRef then
+            local parent_c = clang.dll.clang_hashCursor(parent_cursor)
+            local parent = self.node_map[parent_c]
+            local a = 0
             -- if #f.params == 0 then
             --     f.result_type = typemap:get_reference(node)
             -- else
@@ -151,43 +159,26 @@ local Parser = {
             -- end
         elseif cursor.kind == C.CXCursor_EnumDecl then
             -- enum
+            local t = self.typemap:create_enum(cursor)
+            node.type = t
         elseif cursor.kind == C.CXCursor_EnumConstantDecl then
+            local parent_c = clang.dll.clang_hashCursor(parent_cursor)
+            local parent = self.node_map[parent_c]
+            local a = 0
         elseif cursor.kind == C.CXCursor_TypedefDecl then
             -- typedef
             local t = self.typemap:create_typedef(cursor)
             node.type = t
         elseif cursor.kind == C.CXCursor_StructDecl then
+            local t = self.typemap:create_struct(cursor)
+            node.type = t
         else
             assert(false)
             -- print(cursor)
         end
 
-        -- --- return
-        -- do
-        --     local cxType = clang.dll.clang_getCursorResultType(node.cursor)
-        --     f.result_type = typemap:get_or_create(node.cursor, cxType, node)
-        -- end
         return node
     end,
-
-    -- ---@param self Node
-    -- process = function(self)
-    --     if self.formatted then
-    --         return
-    --     end
-
-    --     if self.type == C.CXCursor_TranslationUnit then
-    --     elseif self.type == C.CXCursor_MacroDefinition then
-    --     elseif self.type == C.CXCursor_MacroExpansion then
-    --     elseif self.type == C.CXCursor_InclusionDirective then
-    --     elseif self.type == C.CXCursor_TypedefDecl then
-    --         -- self.formatted = string.format("%d: typedef %s", self.hash, self.spelling)
-    --     elseif self.type == C.CXCursor_FunctionDecl then
-    --         self.formatted = string.format("%s: function %s()", self.location, self.spelling)
-    --     else
-    --         -- self.formatted = string.format("%d: %q %s", self.hash, self.type, self.spelling)
-    --     end
-    -- end,
 
     ---@param self Parser
     set_root = function(self, cursor)
