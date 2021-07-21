@@ -132,7 +132,7 @@ M.Elaborated = {
 ---@class Struct
 M.Struct = {
     __tostring = function(self)
-        return "struct"
+        return string.format("struct %s{%d fields}", self.name, #self.fields)
     end,
 }
 
@@ -227,39 +227,18 @@ end
 
 ---@param cursor any
 ---@return Enum
-M.create_enum = function(cursor)
+M.get_enum_int_type = function(cursor)
     local cx_type = clang.dll.clang_getEnumDeclIntegerType(cursor)
     local base_type, _is_const = M.type_from_cx_type(cx_type, cursor)
-    if not base_type then
-        return
-    end
-
-    local t = utils.new(M.Enum, {
-        type = base_type,
-    })
-    return t
+    return base_type
 end
 
 ---@param cursor any
 ---@return Typedef
-M.create_typedef = function(cursor)
+M.get_underlying_type = function(cursor)
     local underlying = clang.dll.clang_getTypedefDeclUnderlyingType(cursor)
     local base_type, _is_const = M.type_from_cx_type(underlying, cursor)
-    if not base_type then
-        return
-    end
-
-    local t = utils.new(M.Typedef, {
-        type = base_type,
-    })
-    return t
-end
-
----@param cursor any
----@return Struct
-M.create_struct = function(cursor)
-    local t = utils.new(M.Struct, {})
-    return t
+    return base_type
 end
 
 return M

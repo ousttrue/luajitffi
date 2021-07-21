@@ -156,20 +156,18 @@ local Parser = {
             node.ref_hash = ref_hash
         elseif cursor.kind == C.CXCursor_EnumDecl then
             node.node_type = "enum"
-            local t = types.create_enum(cursor)
-            node.type = t
+            local t = types.get_enum_int_type(cursor)
+            node.base_type = t
         elseif cursor.kind == C.CXCursor_EnumConstantDecl then
             node.node_type = "enum_cnstant"
             local value = clang.dll.clang_getEnumConstantDeclValue(cursor)
             node.value = value
         elseif cursor.kind == C.CXCursor_TypedefDecl then
             node.node_type = "typedef"
-            local t = types.create_typedef(cursor)
+            local t = types.get_underlying_type(cursor)
             node.type = t
         elseif cursor.kind == C.CXCursor_StructDecl then
             node.node_type = "struct"
-            local t = types.create_struct(cursor)
-            node.type = t
         else
             assert(false)
         end

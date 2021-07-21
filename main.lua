@@ -115,7 +115,7 @@ lua clangffi.lua
 
     -- generate
     for header, export_header in pairs(exporter.headers) do
-        print(export_header)
+        print(string.format("// %s", export_header))
         for i, t in ipairs(export_header.types) do
             print(t)
         end
