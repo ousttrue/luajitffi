@@ -149,7 +149,7 @@ M.EnumConst = {
 ---@field values EnumConst[]
 M.Enum = {
     __tostring = function(self)
-        return string.format("enum %s{}", self.name)
+        return string.format("enum %s{%d values}", self.name, #self.values)
     end,
 }
 

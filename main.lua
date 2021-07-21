@@ -101,19 +101,24 @@ lua clangffi.lua
 
     -- export
     local exporter = Exporter.new(parser.nodemap)
-    for i, export in ipairs(cmd.EXPORTS) do
-        exporter:get_or_create_header(export.header)
-    end
-
     for _, node in parser.root:traverse() do
         if node.node_type == "function" then
-            local f = exporter:export(node)
-            -- print(f)
+            -- only function
+            for i, export in ipairs(cmd.EXPORTS) do
+                if export.header == node.location.path then
+                    -- only in export header
+                    exporter:export(node)
+                end
+            end
         end
     end
 
+    -- generate
     for header, export_header in pairs(exporter.headers) do
         print(export_header)
+        for i, t in ipairs(export_header.types) do
+            print(t)
+        end
     end
 end
 

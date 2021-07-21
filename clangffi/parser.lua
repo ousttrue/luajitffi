@@ -132,8 +132,11 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_DLLImport then
             --skip
         elseif cursor.kind == C.CXCursor_StringLiteral then
+            -- literal
+            local tokens = clang.get_tokens(cursor)
         elseif cursor.kind == C.CXCursor_IntegerLiteral then
             -- literal
+            local tokens = clang.get_tokens(cursor)
         elseif cursor.kind == C.CXCursor_FunctionDecl then
             node.node_type = "function"
             local cxType = clang.dll.clang_getCursorResultType(cursor)

@@ -50,7 +50,6 @@ end
 ---@field node_type string
 ---@field level string
 ---@field formatted string
----@field type Type
 local Node = {
 
     ---@param self Node

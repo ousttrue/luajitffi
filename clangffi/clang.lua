@@ -25,6 +25,29 @@ M.get_spelling_from_file = function(file)
     return value
 end
 
+M.get_spelling_from_token = function(tu, token)
+    local spelling = M.dll.clang_getTokenSpelling(tu, token)
+    local str = tostring(M.dll.clang_getCString(spelling))
+    M.dll.clang_disposeString(spelling)
+    return str
+end
+
+M.get_tokens = function(cursor)
+    local tu = M.dll.clang_Cursor_getTranslationUnit(cursor)
+    local range = M.dll.clang_getCursorExtent(cursor)
+
+    local pp = ffi.new("CXToken*[1]")
+    local n = ffi.new("unsigned int[1]")
+    M.dll.clang_tokenize(tu, range, pp, n)
+    local tokens = {}
+    for i = 0, n[0] - 1 do
+        local token = M.get_spelling_from_token(tu, pp[0][i])
+        table.insert(tokens, token)
+    end
+    M.dll.clang_disposeTokens(tu, pp[0], n[0])
+    return tokens
+end
+
 ---@class Location
 ---@field path string
 ---@field line integer
