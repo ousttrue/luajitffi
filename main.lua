@@ -99,10 +99,21 @@ lua clangffi.lua
     local parser = Parser.new()
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
-    for hash, node in pairs(parser.node_map) do
-        if node.type then
-            print(node.location, node.type)
+    -- export
+    local exporter = Exporter.new(parser.nodemap, parser.typemap)
+    for i, export in ipairs(cmd.EXPORTS) do
+        exporter:get_or_create_header(export.header)
+    end
+
+    for _, node in parser.root:traverse() do
+        if node.node_type == "function" then
+            local f = exporter:export(node)
+            -- print(f)
         end
+    end
+
+    for header, export_header in pairs(exporter.headers) do
+        print(export_header)
     end
 end
 

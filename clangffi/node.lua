@@ -43,10 +43,12 @@ end
 ---@class Node
 ---@field hash integer
 ---@field children Node[]
+---@field parent_hash integer
 ---@field cursor_kind any
 ---@field spelling string
 ---@field location Location
----@field indent string
+---@field node_type string
+---@field level string
 ---@field formatted string
 ---@field type Type
 local Node = {
@@ -59,22 +61,26 @@ local Node = {
 
     ---@param self Node
     __tostring = function(self)
-        return string.format("%s%q: %s", self.indent, self.cursor_kind, self.spelling)
+        return string.format("%s: %s", self.node_type, self.spelling)
     end,
 }
 
 ---@param cursor any
 ---@param c integer
 ---@return Node
-Node.new = function(cursor, c)
+Node.new = function(cursor, c, parent_cursor)
     local cxType = clang.dll.clang_getCursorType(cursor)
-    return utils.new(Node, {
+    local node = utils.new(Node, {
         hash = c,
         spelling = clang.get_spelling_from_cursor(cursor),
         cursor_kind = cursor.kind,
         type_kind = cxType.kind,
         location = clang.get_location(cursor),
     })
+    if parent_cursor then
+        node.parent_hash = clang.dll.clang_hashCursor(parent_cursor)
+    end
+    return node
 end
 
 return Node

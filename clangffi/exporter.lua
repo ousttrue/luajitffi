@@ -41,7 +41,13 @@ local Function = {
 ---@field header string
 ---@field types Type[]
 ---@field functions Function[]
-local ExportHeader = {}
+local ExportHeader = {
+    ---@param self ExportHeader
+    ---@return string
+    __tostring = function(self)
+        return string.format("%s (%d funcs) (%d types)", self.header, #self.functions, #self.types)
+    end,
+}
 
 ---@param header string
 ---@return ExportHeader
@@ -54,36 +60,67 @@ ExportHeader.new = function(header)
 end
 
 ---@class Exporter
+---@field nodemap Table<integer, Node>
+---@field typemap TypeMap
 ---@field headers Table<string, ExportHeader>
 local Exporter = {
 
-    ---@return string
-    __tostring = function(self)
-        local result = ""
-        for i, f in ipairs(self.functions) do
-            result = result .. string.format("%s\n", f)
-        end
-        return result
-    end,
+    -- ---@return string
+    -- __tostring = function(self)
+    --     local result = ""
+    --     for i, f in ipairs(self.functions) do
+    --         result = result .. string.format("%s\n", f)
+    --     end
+    --     return result
+    -- end,
 
     ---@param self Exporter
     ---@param export_header ExportHeader
     ---@param node Node
     ---@return Function
     export_function = function(self, export_header, node)
-        local params = {}
-        if node.children then
-            params = utils.filter(node.children, function(c)
-                return c.cursor_kind == C.CXCursor_ParmDecl
-            end)
-        end
+        -- functions
         local f = utils.new(Function, {
-            dll_export = node.dll_export,
+            dll_export = false,
             name = node.spelling,
-            params = params,
-            result_type = node.result_type,
+            params = {},
         })
+        for _, x in node:traverse() do
+            if x.cursor_kind == C.CXCursor_FunctionDecl then
+                -- skip self
+            elseif x.cursor_kind == C.CXCursor_DLLImport then
+                f.dll_export = true
+            elseif x.cursor_kind == C.CXCursor_TypeRef then
+                local parent = self.nodemap[x.parent_hash]
+                local d = x.level - parent.level + 1
+                if d == 1 then
+                    -- return
+                    f.result = x
+                elseif d == 2 then
+                    -- param
+                    table.insert(f.params, d)
+                else
+                    -- other descendant
+                    local a = 0
+                end
+            elseif x.cursor_kind == C.CXCursor_ParmDecl then
+                table.insert(f.params, x)
+            elseif x.cursor_kind == C.CXCursor_UnexposedAttr then
+                -- CINDEX_DEPRECATED
+                local parent = self.nodemap[x.parent_hash]
+                local a = 0
+            else
+                assert(false)
+            end
+        end
+        if not f.dll_export then
+            return
+        end
+
         table.insert(export_header.functions, f)
+
+        -- types
+
         return f
     end,
 
@@ -116,13 +153,14 @@ local Exporter = {
     end,
 }
 
----@param link string
+---@param nodemap Table<integer, Node>
+---@param typemap TypeMap
 ---@return Exporter
-Exporter.new = function(link)
+Exporter.new = function(nodemap, typemap)
     return utils.new(Exporter, {
+        nodemap = nodemap,
+        typemap = typemap,
         headers = {},
-        link = link,
-        functions = {},
     })
 end
 

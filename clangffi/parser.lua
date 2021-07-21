@@ -7,7 +7,7 @@ local TypeMap = require("clangffi.typemap")
 
 ---@class Parser
 ---@field root Node
----@field node_map table<integer, Node>
+---@field nodemap table<integer, Node>
 ---@field typemap TypeMap
 local Parser = {
     ---@param self Parser
@@ -97,13 +97,13 @@ local Parser = {
     ---@param self Parser
     get_or_create_node = function(self, cursor, parent_cursor)
         local c = clang.dll.clang_hashCursor(cursor)
-        local node = self.node_map[c]
+        local node = self.nodemap[c]
         if node then
             return node
         end
 
-        node = Node.new(cursor, c)
-        self.node_map[c] = node
+        node = Node.new(cursor, c, parent_cursor)
+        self.nodemap[c] = node
 
         if cursor.kind == C.CXCursor_TranslationUnit then
         elseif cursor.kind == C.CXCursor_MacroDefinition then
@@ -129,52 +129,40 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_CStyleCastExpr then
         elseif cursor.kind == C.CXCursor_BinaryOperator then
         elseif cursor.kind == C.CXCursor_ParenExpr then
+        elseif cursor.kind == C.CXCursor_CXXBoolLiteralExpr then
+        elseif cursor.kind == C.CXCursor_DLLImport then
             --skip
         elseif cursor.kind == C.CXCursor_StringLiteral then
         elseif cursor.kind == C.CXCursor_IntegerLiteral then
             -- literal
         elseif cursor.kind == C.CXCursor_FunctionDecl then
-            node.type = "function"
-            -- local cxType = clang.dll.clang_getCursorResultType(cursor)
-            -- node.result_type = self.typemap:get_or_create(node, cxType)
-        elseif cursor.kind == C.CXCursor_DLLImport then
-            node.dll_export = true
+            node.node_type = "function"
+            local cxType = clang.dll.clang_getCursorResultType(cursor)
+            node.result_type = self.typemap:type_from_cx_type(cxType, cursor)
         elseif cursor.kind == C.CXCursor_ParmDecl then
-            local parent_c = clang.dll.clang_hashCursor(parent_cursor)
-            local parent = self.node_map[parent_c]
+            node.node_type = "param"
             local cxType = clang.dll.clang_getCursorType(cursor)
-            node.param_type = self.typemap:type_from_cx_type(cxType, cursor)
+            node.type = self.typemap:type_from_cx_type(cxType, cursor)
         elseif cursor.kind == C.CXCursor_FieldDecl then
-            local parent_c = clang.dll.clang_hashCursor(parent_cursor)
-            local parent = self.node_map[parent_c]
-            local a = 0
+            node.node_type = "field"
         elseif cursor.kind == C.CXCursor_TypeRef then
-            local parent_c = clang.dll.clang_hashCursor(parent_cursor)
-            local parent = self.node_map[parent_c]
-            local a = 0
-            -- if #f.params == 0 then
-            --     f.result_type = typemap:get_reference(node)
-            -- else
-            --     f.params[#f.params].type = typemap:get_reference(node)
-            -- end
+            node.node_type = "typeref"
         elseif cursor.kind == C.CXCursor_EnumDecl then
-            -- enum
+            node.node_type = "enum"
             local t = self.typemap:create_enum(cursor)
             node.type = t
         elseif cursor.kind == C.CXCursor_EnumConstantDecl then
-            local parent_c = clang.dll.clang_hashCursor(parent_cursor)
-            local parent = self.node_map[parent_c]
-            local a = 0
+            node.node_type = "enum_cnstant"
         elseif cursor.kind == C.CXCursor_TypedefDecl then
-            -- typedef
+            node.node_type = "typedef"
             local t = self.typemap:create_typedef(cursor)
             node.type = t
         elseif cursor.kind == C.CXCursor_StructDecl then
+            node.node_type = "struct"
             local t = self.typemap:create_struct(cursor)
             node.type = t
         else
             assert(false)
-            -- print(cursor)
         end
 
         return node
@@ -183,7 +171,7 @@ local Parser = {
     ---@param self Parser
     set_root = function(self, cursor)
         self.root = self:get_or_create_node(cursor)
-        self.root.indent = ""
+        self.root.level = 0
     end,
 
     ---@param self Parser
@@ -191,12 +179,12 @@ local Parser = {
         local node = self:get_or_create_node(cursor, parent_cursor)
 
         local p = clang.dll.clang_hashCursor(parent_cursor)
-        local parent = self.node_map[p]
+        local parent = self.nodemap[p]
         if not parent.children then
             parent.children = {}
         end
         table.insert(parent.children, node)
-        node.indent = parent.indent .. "  "
+        node.level = parent.level + 1
     end,
 }
 
@@ -205,7 +193,7 @@ Parser.new = function()
     return utils.new(Parser, {
         ffi = ffi,
         clang = clang,
-        node_map = {},
+        nodemap = {},
         typemap = TypeMap.new(),
     })
 end
