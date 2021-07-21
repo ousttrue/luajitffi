@@ -27,7 +27,7 @@ end
 
 M.get_spelling_from_token = function(tu, token)
     local spelling = M.dll.clang_getTokenSpelling(tu, token)
-    local str = tostring(M.dll.clang_getCString(spelling))
+    local str = ffi.string(M.dll.clang_getCString(spelling))
     M.dll.clang_disposeString(spelling)
     return str
 end

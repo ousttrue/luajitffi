@@ -128,16 +128,15 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_UnexposedExpr then
         elseif cursor.kind == C.CXCursor_CStyleCastExpr then
         elseif cursor.kind == C.CXCursor_BinaryOperator then
+            node.tokens = clang.get_tokens(cursor)
         elseif cursor.kind == C.CXCursor_ParenExpr then
         elseif cursor.kind == C.CXCursor_CXXBoolLiteralExpr then
         elseif cursor.kind == C.CXCursor_DLLImport then
             --skip
         elseif cursor.kind == C.CXCursor_StringLiteral then
-            -- literal
-            local tokens = clang.get_tokens(cursor)
+            node.tokens = clang.get_tokens(cursor)
         elseif cursor.kind == C.CXCursor_IntegerLiteral then
-            -- literal
-            local tokens = clang.get_tokens(cursor)
+            node.tokens = clang.get_tokens(cursor)
         elseif cursor.kind == C.CXCursor_FunctionDecl then
             node.node_type = "function"
             local cxType = clang.dll.clang_getCursorResultType(cursor)
@@ -173,7 +172,7 @@ local Parser = {
             local t = types.get_enum_int_type(cursor)
             node.base_type = t
         elseif cursor.kind == C.CXCursor_EnumConstantDecl then
-            node.node_type = "enum_cnstant"
+            node.node_type = "enum_constant"
             local value = tonumber(clang.dll.clang_getEnumConstantDeclValue(cursor))
             node.value = value
         elseif cursor.kind == C.CXCursor_TypedefDecl then

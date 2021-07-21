@@ -178,7 +178,16 @@ local Exporter = {
                 else
                     assert(false)
                 end
-            else
+            elseif #stack == 2 then
+                if x.cursor_kind == C.CXCursor_IntegerLiteral then
+                    t.values[#t.values].value = table.concat(x.tokens, " ")
+                elseif x.cursor_kind == C.CXCursor_DeclRefExpr then
+                    t.values[#t.values].value = x.spelling
+                elseif x.cursor_kind == C.CXCursor_BinaryOperator then
+                    t.values[#t.values].value = table.concat(x.tokens, " ")
+                else
+                    assert(false)
+                end
             end
         end
         table.insert(export_header.types, t)
@@ -267,18 +276,15 @@ local Exporter = {
                     assert(ref_node)
                     t.fields[#t.fields].type = self:export(ref_node)
                     -- end
+                elseif x.cursor_kind == C.CXCursor_IntegerLiteral then
+                elseif x.cursor_kind == C.CXCursor_DeclRefExpr then
                 else
-                    -- CXCursor_IntegerLiteral
-                    -- assert(false)
                 end
             else
                 -- nested
             end
         end
 
-        if t.name == nil or t.name == "" then
-            a = 0
-        end
         table.insert(export_header.types, t)
         self.used[node] = t
         return t

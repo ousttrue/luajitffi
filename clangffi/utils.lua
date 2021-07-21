@@ -66,4 +66,12 @@ M.split_ext = function(path)
     end
 end
 
+M.get_indent = function(indent, count)
+    local s = ""
+    for i = 1, count do
+        s = s .. indent
+    end
+    return s
+end
+
 return M
