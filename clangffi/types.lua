@@ -64,6 +64,8 @@ M.Double = utils.new(M.Primitive, {
 ---@class Pointer
 ---@field pointee any
 M.Pointer = {
+    ---@param self Pointer
+    ---@return string
     __tostring = function(self)
         return string.format("%s*", self.pointee)
     end,
@@ -73,6 +75,8 @@ M.Pointer = {
 ---@field element any
 ---@field size integer
 M.Array = {
+    ---@param self Array
+    ---@return string
     __tostring = function(self)
         return string.format("%s[%d]", self.element, self.size)
     end,
@@ -87,6 +91,8 @@ M.Array = {
 ---@field type any
 ---@field is_const boolean
 M.Param = {
+    ---@param self Param
+    ---@return string
     __tostring = function(self)
         return string.format("%s %s", self.type, self.name)
     end,
@@ -99,6 +105,7 @@ M.Param = {
 ---@field result_type any
 ---@field result_is_const boolean
 M.Function = {
+    ---@param self Function
     ---@return string
     __tostring = function(self)
         local prefix = ""
@@ -113,11 +120,30 @@ M.Function = {
     end,
 }
 
+---@class FunctionProto
+---@field params Param[]
+---@field result_type any
+---@field result_is_const boolean
+M.FunctionProto = {
+    ---@param self FunctionProto
+    ---@return string
+    __tostring = function(self)
+        local prefix = ""
+        local params = utils.map(self.params, function(p)
+            -- assert(p.cursor_kind)
+            return string.format("%s %s", p.type, p.name)
+        end)
+        return string.format("%s%s (*)(%s)", prefix, self.result_type, table.concat(params, ", "))
+    end,
+}
+
 ---@class Typedef
 ---@field name string
 ---@field type any
 ---@field type_is_const boolean
 M.Typedef = {
+    ---@param self Typedef
+    ---@return string
     __tostring = function(self)
         return string.format("typedef %s = %s", self.name, self.type)
     end,
@@ -128,6 +154,8 @@ M.Typedef = {
 ---@field type any
 ---@field is_const boolean
 M.Field = {
+    ---@param self Field
+    ---@return string
     __tostring = function(self)
         return string.format("%s %s", self.type, self.name)
     end,
@@ -137,6 +165,8 @@ M.Field = {
 ---@field name string
 ---@field fields Field[]
 M.Struct = {
+    ---@param self Struct
+    ---@return string
     __tostring = function(self)
         return string.format("struct %s{%d fields}", self.name, #self.fields)
     end,
@@ -146,6 +176,8 @@ M.Struct = {
 ---@field name string
 ---@field value any
 M.EnumConst = {
+    ---@param self EnumConst
+    ---@return string
     __tostring = function(self)
         return "enum_const"
     end,
@@ -155,6 +187,8 @@ M.EnumConst = {
 ---@field name string
 ---@field values EnumConst[]
 M.Enum = {
+    ---@param self Enum
+    ---@return string
     __tostring = function(self)
         return string.format("enum %s{%d values}", self.name, #self.values)
     end,
@@ -220,9 +254,14 @@ M.type_from_cx_type = function(cxType, cursor)
             pointee = elementType,
         }), is_const
     elseif cxType.kind == C.CXType_FunctionProto then
-        -- function pointer
-        -- void (*fn)(void *)
-        return "functionproto", is_const
+        local resultCxType = clang.dll.clang_getResultType(cxType)
+        local resultType, _is_const = M.type_from_cx_type(resultCxType, cursor)
+        return utils.new(M.FunctionProto, {
+            result_type = resultType,
+            result_is_const = _is_const,
+            params = {},
+        }),
+            is_const
     elseif cxType.kind == C.CXType_Typedef then
         return utils.new(M.Typedef, {})
     elseif cxType.kind == C.CXType_Elaborated then
@@ -246,6 +285,14 @@ M.get_underlying_type = function(cursor)
     local underlying = clang.dll.clang_getTypedefDeclUnderlyingType(cursor)
     local base_type, _is_const = M.type_from_cx_type(underlying, cursor)
     return base_type
+end
+
+M.is_functionproto = function(t)
+    if getmetatable(t) == M.Pointer then
+        if getmetatable(t.pointee) == M.FunctionProto then
+            return true
+        end
+    end
 end
 
 return M

@@ -174,7 +174,7 @@ local Parser = {
             node.base_type = t
         elseif cursor.kind == C.CXCursor_EnumConstantDecl then
             node.node_type = "enum_cnstant"
-            local value = clang.dll.clang_getEnumConstantDeclValue(cursor)
+            local value = tonumber(clang.dll.clang_getEnumConstantDeclValue(cursor))
             node.value = value
         elseif cursor.kind == C.CXCursor_TypedefDecl then
             node.node_type = "typedef"

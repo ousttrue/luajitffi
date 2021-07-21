@@ -1,9 +1,9 @@
 local types = require("clangffi.types")
 
 ---@param t any
----@param in_function boolean use const if true
+---@param param_name string use const if true
 ---@return string
-local function get_typename(t, in_function, name)
+local function get_typename(t, param_name)
     if not t then
         return "XXX no t XXX"
     end
@@ -11,8 +11,31 @@ local function get_typename(t, in_function, name)
     if not mt then
         return "XXX no mt XXX"
     end
+
+    if types.is_functionproto(t) then
+        t = t.pointee
+        local name = ""
+        if type(param_name) == "string" then
+            name = param_name
+        end
+        local s = string.format("%s(*%s)(", get_typename(t.result_type), name)
+        for i, p in ipairs(t.params) do
+            if i > 1 then
+                s = s .. ", "
+            end
+            s = s .. get_typename(p.type, p.name)
+        end
+        s = s .. ")"
+        return s
+    end
+
+    local name = ""
+    if type(param_name) == "string" then
+        name = " " .. param_name
+    end
+
     if mt == types.Primitive then
-        return t.type
+        return t.type .. name
     elseif mt == types.Pointer then
         local is_const = ""
         if getmetatable(t.pointee) == types.Pointer then
@@ -20,31 +43,23 @@ local function get_typename(t, in_function, name)
             if t.is_const then
                 is_const = " const"
             end
-            return string.format("%s%s*", get_typename(t.pointee, in_function), is_const)
+            return string.format("%s%s*%s", get_typename(t.pointee), is_const, name)
         else
             -- const type*
             if t.is_const then
                 is_const = "const "
             end
-            return string.format("%s%s*", is_const, get_typename(t.pointee, in_function))
+            return string.format("%s%s*%s", is_const, get_typename(t.pointee), name)
         end
     elseif mt == types.Array then
-        return string.format("%s[%d]", get_typename(t.element), t.size)
-    elseif mt == types.Typedef then
+        return string.format("%s[%d]%s", get_typename(t.element), t.size, name)
+    elseif mt == types.Typedef or mt == types.Enum or mt == types.Struct then
         if not t.name then
             return "XXX no name XXX"
         end
-        return t.name
-    elseif mt == types.Enum then
-        if not t.name then
-            return "XXX no name XXX"
-        end
-        return t.name
-    elseif mt == types.Struct then
-        if not t.name then
-            return "XXX no name XXX"
-        end
-        return t.name
+        return t.name .. name
+    elseif mt == types.FunctionProto then
+        assert(false)
     else
         return "XXX unknown type XXX"
     end
@@ -52,14 +67,18 @@ end
 
 ---@param self Typedef
 types.Typedef.cdef = function(self)
-    return string.format("typedef %s %s;\n", get_typename(self.type, false), self.name)
+    return string.format("typedef %s;\n", get_typename(self.type, self.name))
 end
 
 ---@param self Struct
 types.Struct.cdef = function(self)
+    if #self.fields == 0 then
+        return string.format("struct %s;\n", self.name)
+    end
+
     local s = string.format("struct %s {\n", self.name)
-    for i, v in ipairs(self.fields) do
-        s = s .. string.format("    %s %s;\n", get_typename(v.type, false), v.name)
+    for i, f in ipairs(self.fields) do
+        s = s .. string.format("    %s;\n", get_typename(f.type, f.name))
     end
     s = s .. "};\n"
     return s
@@ -79,7 +98,7 @@ end
 types.Function.cdef = function(self)
     local s = string.format("%s %s(\n", get_typename(self.result_type, true), self.name)
     for i, p in pairs(self.params) do
-        s = s .. string.format("    %s %s", get_typename(p.type, true), p.name)
+        s = s .. string.format("    %s", get_typename(p.type, p.name))
         if i < #self.params then
             s = s .. ","
         end

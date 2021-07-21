@@ -72,10 +72,11 @@ local Exporter = {
                         type = x.type,
                         is_const = x.is_const,
                     })
-                    if node.spelling == "clang_getCString" then
-                        a = 0
-                    end
                     table.insert(t.params, p)
+
+                    if types.is_functionproto(x.type) then
+                        self:export_functionproto(x)
+                    end
                 elseif x.cursor_kind == C.CXCursor_UnexposedAttr then
                     -- CINDEX_DEPRECATED
                     local parent = self.nodemap[x.parent_hash]
@@ -104,6 +105,52 @@ local Exporter = {
         end
         table.insert(export_header.functions, t)
         self.used[node] = t
+        return t
+    end,
+
+    ---@param self Exporter
+    ---@param node Node
+    ---@return FunctionProto
+    export_functionproto = function(self, node)
+        local t = node.type.pointee
+        for stack, x in node:traverse() do
+            if #stack == 0 then
+                -- skip self
+            elseif #stack == 1 then
+                if x.cursor_kind == C.CXCursor_TypeRef then
+                    local ref_node = self.nodemap[x.ref_hash]
+                    assert(ref_node)
+                    -- return
+                    t.result_type = self:export(ref_node)
+                elseif x.cursor_kind == C.CXCursor_ParmDecl then
+                    local p = utils.new(types.Param, {
+                        name = x.spelling,
+                        type = x.type,
+                        is_const = x.is_const,
+                    })
+                    table.insert(t.params, p)
+                else
+                    assert(false)
+                end
+            elseif #stack == 2 then
+                if x.cursor_kind == C.CXCursor_TypeRef then
+                    local parent = self.nodemap[x.parent_hash]
+                    assert(parent)
+                    -- if parent.node_type == "param" then
+                    -- param
+                    local ref_node = self.nodemap[x.ref_hash]
+                    assert(ref_node)
+                    t.params[#t.params].type = self:export(ref_node)
+                    -- else
+                    --     -- assert(false)
+                    -- end
+                else
+                    -- other descendant
+                end
+            else
+                -- skip
+            end
+        end
         return t
     end,
 
@@ -148,6 +195,10 @@ local Exporter = {
             name = node.spelling,
             type = node.type,
         })
+        if types.is_functionproto(node.type) then
+            self:export_functionproto(node)
+        end
+
         for stack, x in node:traverse() do
             if #stack == 0 then
                 -- self
@@ -197,6 +248,10 @@ local Exporter = {
                             type = x.type,
                         })
                     )
+
+                    if types.is_functionproto(x.type) then
+                        self:export_functionproto(x)
+                    end
                 elseif x.cursor_kind == C.CXCursor_TypeRef then
                     assert(false)
                 else
