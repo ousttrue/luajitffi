@@ -118,7 +118,7 @@ M.Function = {
 ---@field type_is_const boolean
 M.Typedef = {
     __tostring = function(self)
-        return string.format("=> %s", self.type)
+        return string.format("typedef %s = %s", self.name, self.type)
     end,
 }
 

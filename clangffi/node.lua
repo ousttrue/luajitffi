@@ -1,4 +1,3 @@
-local ffi = require("ffi")
 local clang = require("clangffi.clang")
 local utils = require("clangffi.utils")
 
@@ -48,8 +47,7 @@ end
 ---@field spelling string
 ---@field location Location
 ---@field node_type string
----@field level string
----@field formatted string
+---@field type any
 local Node = {
 
     ---@param self Node

@@ -180,7 +180,6 @@ local Parser = {
     ---@param self Parser
     set_root = function(self, cursor)
         self.root = self:get_or_create_node(cursor)
-        self.root.level = 0
     end,
 
     ---@param self Parser
@@ -193,7 +192,6 @@ local Parser = {
             parent.children = {}
         end
         table.insert(parent.children, node)
-        node.level = parent.level + 1
     end,
 }
 
