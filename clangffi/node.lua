@@ -43,6 +43,7 @@ end
 ---@field hash integer
 ---@field children Node[]
 ---@field parent_hash integer
+---@field ref_hash integer
 ---@field cursor_kind any
 ---@field spelling string
 ---@field location Location
@@ -51,14 +52,28 @@ end
 local Node = {
 
     ---@param self Node
+    __tostring = function(self)
+        return string.format("%s: %s", self.node_type, self.spelling)
+    end,
+
+    ---@param self Node
     ---@return fun(root: Node, state: Node[]):Node[]
     traverse = function(self)
         return traverse, self
     end,
 
     ---@param self Node
-    __tostring = function(self)
-        return string.format("%s: %s", self.node_type, self.spelling)
+    ---@param src Node
+    ---@param dst Node
+    replace_child = function(self, src, dst)
+        for i, child in ipairs(self.children) do
+            if child == src then
+                self.children[i] = dst
+                dst.parent_hash = self.hash
+                return true
+            end
+        end
+        assert(false)
     end,
 }
 

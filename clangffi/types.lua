@@ -12,7 +12,7 @@ local M = {}
 ---@field name string
 M.Primitive = {
     __tostring = function(self)
-        return self.type
+        return string.format("(%s)", self.type)
     end,
 }
 
@@ -122,13 +122,6 @@ M.Typedef = {
     end,
 }
 
----@class Elabolated
-M.Elaborated = {
-    __tostring = function(self)
-        return "elaborated"
-    end,
-}
-
 ---@class Struct
 M.Struct = {
     __tostring = function(self)
@@ -184,9 +177,7 @@ M.type_from_cx_type = function(cxType, cursor)
 
     if cxType.kind == C.CXType_Unexposed then
         -- template T ?
-        return {
-            type = "unexposed",
-        }, is_const
+        return "unexposed", is_const
     elseif cxType.kind == C.CXType_Pointer or cxType.kind == C.CXType_LValueReference then
         -- pointer
         local pointeeCxType = clang.dll.clang_getPointeeType(cxType)
@@ -219,7 +210,7 @@ M.type_from_cx_type = function(cxType, cursor)
     elseif cxType.kind == C.CXType_Typedef then
         return utils.new(M.Typedef, {})
     elseif cxType.kind == C.CXType_Elaborated then
-        return utils.new(M.Elaborated, {})
+        return "elaborated", is_const
     else
         assert(false)
     end

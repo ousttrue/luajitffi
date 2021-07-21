@@ -8,6 +8,7 @@ local types = require("clangffi.types")
 ---@class Parser
 ---@field root Node
 ---@field nodemap table<integer, Node>
+---@field reverse_reference_map table<integer, Node[]>
 local Parser = {
     ---@param self Parser
     ---@param exports Export[]
@@ -154,6 +155,13 @@ local Parser = {
             local referenced = clang.dll.clang_getCursorReferenced(cursor)
             local ref_hash = clang.dll.clang_hashCursor(referenced)
             node.ref_hash = ref_hash
+
+            local ref_list = self.reverse_reference_map[ref_hash]
+            if not ref_list then
+                ref_list = {}
+                self.reverse_reference_map[ref_hash] = ref_list
+            end
+            table.insert(ref_list, node)
         elseif cursor.kind == C.CXCursor_EnumDecl then
             node.node_type = "enum"
             local t = types.get_enum_int_type(cursor)
@@ -191,6 +199,74 @@ local Parser = {
         end
         table.insert(parent.children, node)
     end,
+
+    ---@param self Parser
+    ---@param node Node
+    replace_typedef = function(self, node)
+        if getmetatable(node.type) == types.Primitive then
+            return
+        elseif getmetatable(node.type) == types.Pointer then
+            return
+        elseif getmetatable(node.type) == types.Typedef then
+            return
+        elseif node.type == "unexposed" then
+            return
+        elseif node.type == "elaborated" then
+            if #node.children == 1 then
+                if node.children[1].node_type == "struct" then
+                    node.children[1].spelling = node.spelling
+                    return node.children[1]
+                elseif node.children[1].node_type == "enum" then
+                    node.children[1].spelling = node.spelling
+                    return node.children[1]
+                else
+                    assert(false)
+                end
+            else
+                assert(false)
+            end
+        else
+            assert(false)
+        end
+    end,
+
+    -- 不要な typedef
+    -- typedef Tag struct {} Name;
+    -- 的なのを除去する
+    ---@param self Parser
+    ---@return integer
+    resolve_typedef = function(self)
+        local count = 0
+        local typedef_list = {}
+        for _, node in self.root:traverse() do
+            if node.node_type == "typedef" then
+                table.insert(typedef_list, node)
+            end
+        end
+
+        local r = {}
+        for i, node in ipairs(typedef_list) do
+            local replace = self:replace_typedef(node)
+            if replace then
+                table.insert(r, node)
+                -- replace parent
+                local parent = self.nodemap[node.parent_hash]
+                assert(parent)
+                parent:replace_child(node, replace)
+
+                -- replace reference
+                local ref_list = self.reverse_reference_map[node.hash]
+                if ref_list then
+                    for j, x in ipairs(ref_list) do
+                        x.ref_hash = replace.hash
+                    end
+                end
+                count = count + 1
+            end
+        end
+
+        return count
+    end,
 }
 
 ---@return Parser
@@ -199,6 +275,7 @@ Parser.new = function()
         ffi = ffi,
         clang = clang,
         nodemap = {},
+        reverse_reference_map = {},
     })
 end
 

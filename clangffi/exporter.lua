@@ -177,6 +177,10 @@ local Exporter = {
                 -- nested
             end
         end
+
+        if t.name == nil or t.name == "" then
+            a = 0
+        end
         table.insert(export_header.types, t)
         self.used[node] = t
         return t

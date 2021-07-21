@@ -99,6 +99,14 @@ lua clangffi.lua
     local parser = Parser.new()
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
+    -- resolve typedef
+    while true do
+        local count = parser:resolve_typedef()
+        if count == 0 then
+            break
+        end
+    end
+
     -- export
     local exporter = Exporter.new(parser.nodemap)
     for _, node in parser.root:traverse() do
