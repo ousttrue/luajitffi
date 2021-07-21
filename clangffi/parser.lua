@@ -3,12 +3,11 @@ local clang = require("clangffi.clang")
 local C = clang.C
 local Node = require("clangffi.node")
 local utils = require("clangffi.utils")
-local TypeMap = require("clangffi.typemap")
+local types = require("clangffi.types")
 
 ---@class Parser
 ---@field root Node
 ---@field nodemap table<integer, Node>
----@field typemap TypeMap
 local Parser = {
     ---@param self Parser
     ---@param exports Export[]
@@ -138,28 +137,35 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_FunctionDecl then
             node.node_type = "function"
             local cxType = clang.dll.clang_getCursorResultType(cursor)
-            node.result_type = self.typemap:type_from_cx_type(cxType, cursor)
+            node.result_type = types.type_from_cx_type(cxType, cursor)
         elseif cursor.kind == C.CXCursor_ParmDecl then
             node.node_type = "param"
             local cxType = clang.dll.clang_getCursorType(cursor)
-            node.type = self.typemap:type_from_cx_type(cxType, cursor)
+            node.type = types.type_from_cx_type(cxType, cursor)
         elseif cursor.kind == C.CXCursor_FieldDecl then
             node.node_type = "field"
+            local cxType = clang.dll.clang_getCursorType(cursor)
+            node.type = types.type_from_cx_type(cxType, cursor)
         elseif cursor.kind == C.CXCursor_TypeRef then
             node.node_type = "typeref"
+            local referenced = clang.dll.clang_getCursorReferenced(cursor)
+            local ref_hash = clang.dll.clang_hashCursor(referenced)
+            node.ref_hash = ref_hash
         elseif cursor.kind == C.CXCursor_EnumDecl then
             node.node_type = "enum"
-            local t = self.typemap:create_enum(cursor)
+            local t = types.create_enum(cursor)
             node.type = t
         elseif cursor.kind == C.CXCursor_EnumConstantDecl then
             node.node_type = "enum_cnstant"
+            local value = clang.dll.clang_getEnumConstantDeclValue(cursor)
+            node.value = value
         elseif cursor.kind == C.CXCursor_TypedefDecl then
             node.node_type = "typedef"
-            local t = self.typemap:create_typedef(cursor)
+            local t = types.create_typedef(cursor)
             node.type = t
         elseif cursor.kind == C.CXCursor_StructDecl then
             node.node_type = "struct"
-            local t = self.typemap:create_struct(cursor)
+            local t = types.create_struct(cursor)
             node.type = t
         else
             assert(false)
@@ -194,7 +200,6 @@ Parser.new = function()
         ffi = ffi,
         clang = clang,
         nodemap = {},
-        typemap = TypeMap.new(),
     })
 end
 

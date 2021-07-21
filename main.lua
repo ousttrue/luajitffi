@@ -100,7 +100,7 @@ lua clangffi.lua
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
 
     -- export
-    local exporter = Exporter.new(parser.nodemap, parser.typemap)
+    local exporter = Exporter.new(parser.nodemap)
     for i, export in ipairs(cmd.EXPORTS) do
         exporter:get_or_create_header(export.header)
     end

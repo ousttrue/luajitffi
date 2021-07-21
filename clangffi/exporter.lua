@@ -61,18 +61,8 @@ end
 
 ---@class Exporter
 ---@field nodemap Table<integer, Node>
----@field typemap TypeMap
 ---@field headers Table<string, ExportHeader>
 local Exporter = {
-
-    -- ---@return string
-    -- __tostring = function(self)
-    --     local result = ""
-    --     for i, f in ipairs(self.functions) do
-    --         result = result .. string.format("%s\n", f)
-    --     end
-    --     return result
-    -- end,
 
     ---@param self Exporter
     ---@param export_header ExportHeader
@@ -91,14 +81,16 @@ local Exporter = {
             elseif x.cursor_kind == C.CXCursor_DLLImport then
                 f.dll_export = true
             elseif x.cursor_kind == C.CXCursor_TypeRef then
+                local ref = self.nodemap[x.ref_hash]
+                assert(ref)
                 local parent = self.nodemap[x.parent_hash]
                 local d = x.level - parent.level + 1
                 if d == 1 then
                     -- return
-                    f.result = x
+                    f.result = ref
                 elseif d == 2 then
                     -- param
-                    table.insert(f.params, d)
+                    table.insert(f.params, ref)
                 else
                     -- other descendant
                     local a = 0
@@ -154,12 +146,10 @@ local Exporter = {
 }
 
 ---@param nodemap Table<integer, Node>
----@param typemap TypeMap
 ---@return Exporter
-Exporter.new = function(nodemap, typemap)
+Exporter.new = function(nodemap)
     return utils.new(Exporter, {
         nodemap = nodemap,
-        typemap = typemap,
         headers = {},
     })
 end
