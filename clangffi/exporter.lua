@@ -1,41 +1,7 @@
 local utils = require("clangffi.utils")
+local types = require("clangffi.types")
 local clang = require("clangffi.clang")
 local C = clang.C
-
----@class Param
----@field node Node
----@field name string
----@field type Type
-local Param = {}
-
----@param node Node
----@return Node
-Param.new = function(node)
-    return utils.new(Param, {
-        node = node,
-        name = node.spelling,
-    })
-end
-
----@class Function
----@field dll_export boolean
----@field name string
----@field params Param[]
----@field result_type Type
-local Function = {
-    ---@return string
-    __tostring = function(self)
-        local prefix = ""
-        if self.dll_export then
-            prefix = "extern "
-        end
-        local params = utils.map(self.params, function(p)
-            assert(p.cursor_kind)
-            return string.format("%s %s", p.param_type, p.spelling)
-        end)
-        return string.format("%s%s %s(%s)", prefix, self.result_type, self.name, table.concat(params, ", "))
-    end,
-}
 
 ---@class ExportHeader
 ---@field header string
@@ -70,7 +36,7 @@ local Exporter = {
     ---@return Function
     export_function = function(self, export_header, node)
         -- functions
-        local f = utils.new(Function, {
+        local f = utils.new(types.Function, {
             dll_export = false,
             name = node.spelling,
             params = {},
