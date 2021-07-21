@@ -10,7 +10,11 @@ local M = {}
 
 ---@class Primitive
 ---@field name string
-M.Primitive = {}
+M.Primitive = {
+    __tostring = function(self)
+        return self.type
+    end,
+}
 
 M.Void = utils.new(M.Primitive, {
     type = "void",
@@ -59,18 +63,30 @@ M.Double = utils.new(M.Primitive, {
 
 ---@class Pointer
 ---@field pointee any
-M.Pointer = {}
+M.Pointer = {
+    __tostring = function(self)
+        return string.format("%s*", self.pointee)
+    end,
+}
 
 ---@class Array
 ---@field element any
 ---@field size integer
-M.Array = {}
+M.Array = {
+    __tostring = function(self)
+        return string.format("%s[%d]", self.element, self.size)
+    end,
+}
 
 ---@class Param
 ---@field name string
 ---@field type any
 ---@field is_const boolean
-M.Param = {}
+M.Param = {
+    __tostring = function(self)
+        return string.format("%s %s", self.type, self.name)
+    end,
+}
 
 ---
 --- Function, Struct, Typedef, Enum...
@@ -100,22 +116,42 @@ M.Function = {
 ---@class Typedef
 ---@field type any
 ---@field type_is_const boolean
-M.Typedef = {}
+M.Typedef = {
+    __tostring = function(self)
+        return string.format("=> %s", self.type)
+    end,
+}
 
 ---@class Elabolated
-M.Elaborated = {}
+M.Elaborated = {
+    __tostring = function(self)
+        return "elaborated"
+    end,
+}
 
 ---@class Struct
-M.Struct = {}
+M.Struct = {
+    __tostring = function(self)
+        return "struct"
+    end,
+}
 
 ---@class EnumConst
 ---@field name string
 ---@field value any
-M.EnumConst = {}
+M.EnumConst = {
+    __tostring = function(self)
+        return "enum_const"
+    end,
+}
 
 ---@class Enum
 ---@field values EnumConst[]
-M.Enum = {}
+M.Enum = {
+    __tostring = function(self)
+        return string.format("enum %s{}", self.name)
+    end,
+}
 
 local primitives = {
     [C.CXType_Void] = M.Void,
