@@ -55,6 +55,7 @@ local Exporter = {
             result_type = node.type,
             result_is_const = node.is_const,
         })
+
         for stack, x in node:traverse() do
             if #stack == 0 then
                 -- skip self
@@ -103,6 +104,7 @@ local Exporter = {
                 -- skip
             end
         end
+
         table.insert(export_header.functions, t)
         self.used[node] = t
         return t
@@ -163,6 +165,7 @@ local Exporter = {
             name = node.spelling,
             values = {},
         })
+
         for stack, x in node:traverse() do
             if #stack == 0 then
                 -- self
@@ -190,6 +193,7 @@ local Exporter = {
                 end
             end
         end
+
         table.insert(export_header.types, t)
         self.used[node] = t
         return t
@@ -231,6 +235,7 @@ local Exporter = {
                 -- nested skip
             end
         end
+
         table.insert(export_header.types, t)
         self.used[node] = t
         return t
@@ -245,6 +250,7 @@ local Exporter = {
             name = node.spelling,
             fields = {},
         })
+
         for stack, x in node:traverse() do
             if #stack == 0 then
                 --self

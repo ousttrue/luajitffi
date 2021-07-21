@@ -122,6 +122,10 @@ lua clangffi.lua
     end
 
     -- generate
+    if not lfs.attributes(cmd.OUT_DIR) then
+        mkdirp(cmd.OUT_DIR)
+    end
+
     require("cdef")
     for header, export_header in pairs(exporter.headers) do
         -- print(string.format("// %s", export_header))

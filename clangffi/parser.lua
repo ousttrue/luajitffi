@@ -202,6 +202,13 @@ local Parser = {
         if not parent.children then
             parent.children = {}
         end
+
+        for i, sibling in ipairs(parent.children) do
+            if sibling.hash == node.hash then
+                -- avoid duplicate
+                return
+            end
+        end
         table.insert(parent.children, node)
     end,
 

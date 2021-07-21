@@ -52,7 +52,7 @@ local function get_typename(t, param_name)
             return string.format("%s%s*%s", is_const, get_typename(t.pointee), name)
         end
     elseif mt == types.Array then
-        return string.format("%s[%d]%s", get_typename(t.element), t.size, name)
+        return string.format("%s%s[%d]", get_typename(t.element), name, t.size)
     elseif mt == types.Typedef or mt == types.Enum or mt == types.Struct then
         if not t.name then
             return "XXX no name XXX"
@@ -73,24 +73,24 @@ end
 ---@param self Struct
 types.Struct.cdef = function(self)
     if #self.fields == 0 then
-        return string.format("struct %s;\n", self.name)
+        return string.format("typedef struct %s %s;\n", self.name, self.name)
     end
 
-    local s = string.format("struct %s {\n", self.name)
+    local s = string.format("typedef struct %s {\n", self.name)
     for i, f in ipairs(self.fields) do
         s = s .. string.format("    %s;\n", get_typename(f.type, f.name))
     end
-    s = s .. "};\n"
+    s = s .. string.format("} %s;\n", self.name)
     return s
 end
 
 ---@param self Enum
 types.Enum.cdef = function(self)
-    local s = string.format("enum %s {\n", self.name)
+    local s = string.format("typedef enum %s {\n", self.name)
     for i, v in ipairs(self.values) do
         s = s .. string.format("    %s = %s,\n", v.name, v.value)
     end
-    s = s .. "};\n"
+    s = s .. string.format("} %s;\n", self.name)
     return s
 end
 
