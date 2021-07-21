@@ -198,7 +198,9 @@ M.type_from_cx_type = function(cxType, cursor)
         local pointeeType, _is_const = M.type_from_cx_type(pointeeCxType, cursor)
         return utils.new(M.Pointer, {
             pointee = pointeeType,
-        }), is_const
+            is_const = _is_const,
+        }),
+            is_const
     elseif cxType.kind == C.CXType_ConstantArray then
         -- -- array[N]
         local array_size = tonumber(clang.dll.clang_getArraySize(cxType))

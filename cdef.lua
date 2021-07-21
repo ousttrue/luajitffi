@@ -14,7 +14,20 @@ local function get_typename(t, in_function, name)
     if mt == types.Primitive then
         return t.type
     elseif mt == types.Pointer then
-        return get_typename(t.pointee, in_function) .. "*"
+        local is_const = ""
+        if getmetatable(t.pointee) == types.Pointer then
+            -- type const*
+            if t.is_const then
+                is_const = " const"
+            end
+            return string.format("%s%s*", get_typename(t.pointee, in_function), is_const)
+        else
+            -- const type*
+            if t.is_const then
+                is_const = "const "
+            end
+            return string.format("%s%s*", is_const, get_typename(t.pointee, in_function))
+        end
     elseif mt == types.Array then
         return string.format("%s[%d]", get_typename(t.element), t.size)
     elseif mt == types.Typedef then

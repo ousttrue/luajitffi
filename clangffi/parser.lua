@@ -141,15 +141,21 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_FunctionDecl then
             node.node_type = "function"
             local cxType = clang.dll.clang_getCursorResultType(cursor)
-            node.type = types.type_from_cx_type(cxType, cursor)
+            local t, is_const = types.type_from_cx_type(cxType, cursor)
+            node.type = t
+            node.is_const = is_const
         elseif cursor.kind == C.CXCursor_ParmDecl then
             node.node_type = "param"
             local cxType = clang.dll.clang_getCursorType(cursor)
-            node.type = types.type_from_cx_type(cxType, cursor)
+            local t, is_const = types.type_from_cx_type(cxType, cursor)
+            node.type = t
+            node.is_const = is_const
         elseif cursor.kind == C.CXCursor_FieldDecl then
             node.node_type = "field"
             local cxType = clang.dll.clang_getCursorType(cursor)
-            node.type = types.type_from_cx_type(cxType, cursor)
+            local t, is_const = types.type_from_cx_type(cxType, cursor)
+            node.type = t
+            -- node.is_const = is_const
         elseif cursor.kind == C.CXCursor_TypeRef then
             node.node_type = "typeref"
             local referenced = clang.dll.clang_getCursorReferenced(cursor)
