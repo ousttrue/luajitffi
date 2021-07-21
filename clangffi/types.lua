@@ -78,6 +78,10 @@ M.Array = {
     end,
 }
 
+---
+--- Function, Struct, Typedef, Enum...
+---
+
 ---@class Param
 ---@field name string
 ---@field type any
@@ -87,10 +91,6 @@ M.Param = {
         return string.format("%s %s", self.type, self.name)
     end,
 }
-
----
---- Function, Struct, Typedef, Enum...
----
 
 ---@class Function
 ---@field dll_export boolean
@@ -106,14 +106,15 @@ M.Function = {
             prefix = "extern "
         end
         local params = utils.map(self.params, function(p)
-            assert(p.cursor_kind)
-            return string.format("%s %s", p.param_type, p.spelling)
+            -- assert(p.cursor_kind)
+            return string.format("%s %s", p.type, p.name)
         end)
         return string.format("%s%s %s(%s)", prefix, self.result_type, self.name, table.concat(params, ", "))
     end,
 }
 
 ---@class Typedef
+---@field name string
 ---@field type any
 ---@field type_is_const boolean
 M.Typedef = {
@@ -122,7 +123,19 @@ M.Typedef = {
     end,
 }
 
+---@class Field
+---@field name string
+---@field type any
+---@field is_const boolean
+M.Field = {
+    __tostring = function(self)
+        return string.format("%s %s", self.type, self.name)
+    end,
+}
+
 ---@class Struct
+---@field name string
+---@field fields Field[]
 M.Struct = {
     __tostring = function(self)
         return string.format("struct %s{%d fields}", self.name, #self.fields)
@@ -139,6 +152,7 @@ M.EnumConst = {
 }
 
 ---@class Enum
+---@field name string
 ---@field values EnumConst[]
 M.Enum = {
     __tostring = function(self)
@@ -172,7 +186,7 @@ M.type_from_cx_type = function(cxType, cursor)
 
     local primitive = primitives[tonumber(cxType.kind)]
     if primitive then
-        return primitive
+        return primitive, is_const
     end
 
     if cxType.kind == C.CXType_Unexposed then
@@ -187,7 +201,7 @@ M.type_from_cx_type = function(cxType, cursor)
         }), is_const
     elseif cxType.kind == C.CXType_ConstantArray then
         -- -- array[N]
-        local array_size = clang.dll.clang_getArraySize(cxType)
+        local array_size = tonumber(clang.dll.clang_getArraySize(cxType))
         local elementCxType = clang.dll.clang_getArrayElementType(cxType)
         local elementType, _is_const = M.type_from_cx_type(elementCxType, cursor)
         return utils.new(M.Array, {
@@ -206,7 +220,7 @@ M.type_from_cx_type = function(cxType, cursor)
     elseif cxType.kind == C.CXType_FunctionProto then
         -- function pointer
         -- void (*fn)(void *)
-        return utils.new(M.Function, {}), is_const
+        return "functionproto", is_const
     elseif cxType.kind == C.CXType_Typedef then
         return utils.new(M.Typedef, {})
     elseif cxType.kind == C.CXType_Elaborated then

@@ -141,7 +141,7 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_FunctionDecl then
             node.node_type = "function"
             local cxType = clang.dll.clang_getCursorResultType(cursor)
-            node.result_type = types.type_from_cx_type(cxType, cursor)
+            node.type = types.type_from_cx_type(cxType, cursor)
         elseif cursor.kind == C.CXCursor_ParmDecl then
             node.node_type = "param"
             local cxType = clang.dll.clang_getCursorType(cursor)
