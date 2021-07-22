@@ -250,31 +250,26 @@ local Parser = {
     ---@return integer
     resolve_typedef = function(self)
         local count = 0
-        local typedef_list = {}
-        for _, node in self.root:traverse() do
+        for stack, node in self.root:traverse() do
             if node.node_type == "typedef" then
-                table.insert(typedef_list, node)
-            end
-        end
+                local replace = self:replace_typedef(node)
+                if replace then
+                    -- replace parent
+                    local path = utils.map(stack, function(x)return x end)
+                    table.remove(path)
+                    local parent = self.root:from_path(path)
+                    assert(parent)
+                    parent:replace_child(node, replace)
 
-        local r = {}
-        for i, node in ipairs(typedef_list) do
-            local replace = self:replace_typedef(node)
-            if replace then
-                table.insert(r, node)
-                -- replace parent
-                local parent = self.nodemap[node.parent_hash]
-                assert(parent)
-                parent:replace_child(node, replace)
-
-                -- replace reference
-                local ref_list = self.reverse_reference_map[node.hash]
-                if ref_list then
-                    for j, x in ipairs(ref_list) do
-                        x.ref_hash = replace.hash
+                    -- replace reference
+                    local ref_list = self.reverse_reference_map[node.hash]
+                    if ref_list then
+                        for j, x in ipairs(ref_list) do
+                            x.ref_hash = replace.hash
+                        end
                     end
+                    count = count + 1
                 end
-                count = count + 1
             end
         end
 

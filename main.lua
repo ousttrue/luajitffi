@@ -101,13 +101,15 @@ lua clangffi.lua
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
     parser.root:remove_duplicated()
 
-    -- -- resolve typedef
-    -- while true do
-    --     local count = parser:resolve_typedef()
-    --     if count == 0 then
-    --         break
-    --     end
-    -- end
+    -- resolve typedef
+    if false then
+        while true do
+            local count = parser:resolve_typedef()
+            if count == 0 then
+                break
+            end
+        end
+    end
 
     -- export
     print("export...")

@@ -1,22 +1,12 @@
 local clang = require("clangffi.clang")
 local utils = require("clangffi.utils")
 
-local function from_path(root, path)
-    local current = root
-    local i = 1
-    while i <= #path do
-        current = current.children[path[i]]
-        i = i + 1
-    end
-    return current
-end
-
 local function traverse(root, stack)
     if not stack then
         return {}, root
     end
 
-    local current = from_path(root, stack)
+    local current = root:from_path(stack)
     if current.children then
         local child = current.children[1]
         -- push
@@ -27,7 +17,7 @@ local function traverse(root, stack)
     while #stack > 0 do
         local index = table.remove(stack)
         table.insert(stack, index + 1)
-        local sibling = from_path(root, stack)
+        local sibling = root:from_path(stack)
         if sibling then
             -- sibling
             return stack, sibling
@@ -42,7 +32,6 @@ end
 ---@class Node
 ---@field hash integer
 ---@field children Node[]
----@field parent_hash integer
 ---@field ref_hash integer
 ---@field cursor_kind any
 ---@field spelling string
@@ -69,7 +58,6 @@ local Node = {
         for i, child in ipairs(self.children) do
             if child == src then
                 self.children[i] = dst
-                dst.parent_hash = self.hash
                 return true
             end
         end
@@ -94,6 +82,16 @@ local Node = {
             table.remove(self.children, x)
         end
     end,
+
+    from_path = function(root, path)
+        local current = root
+        local i = 1
+        while i <= #path do
+            current = current.children[path[i]]
+            i = i + 1
+        end
+        return current
+    end,
 }
 
 ---@param cursor any
@@ -108,9 +106,6 @@ Node.new = function(cursor, c, parent_cursor)
         type_kind = cxType.kind,
         location = clang.get_location(cursor),
     })
-    if parent_cursor then
-        node.parent_hash = clang.dll.clang_hashCursor(parent_cursor)
-    end
     return node
 end
 

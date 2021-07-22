@@ -85,8 +85,6 @@ local Exporter = {
                 end
             elseif #stack == 2 then
                 if x.cursor_kind == C.CXCursor_TypeRef then
-                    local parent = self.nodemap[x.parent_hash]
-                    assert(parent)
                     -- if parent.node_type == "param" then
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
@@ -134,8 +132,6 @@ local Exporter = {
                 end
             elseif #stack == 2 then
                 if x.cursor_kind == C.CXCursor_TypeRef then
-                    local parent = self.nodemap[x.parent_hash]
-                    assert(parent)
                     -- if parent.node_type == "param" then
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
@@ -276,8 +272,6 @@ local Exporter = {
                 end
             elseif #stack == 2 then
                 if x.cursor_kind == C.CXCursor_TypeRef then
-                    local parent = self.nodemap[x.parent_hash]
-                    assert(parent)
                     -- if parent.node_type == "field" then
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
