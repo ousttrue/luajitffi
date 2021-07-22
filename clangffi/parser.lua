@@ -1,9 +1,11 @@
 local ffi = require("ffi")
-local clang = require("clangffi.clang")
-local C = clang.C
 local Node = require("clangffi.node")
 local utils = require("clangffi.utils")
 local types = require("clangffi.types")
+local mod = require("clang.mod")
+local clang_util = require("clangffi.clang_util")
+local clang = mod.libs.clang
+local CXCursorKind = mod.enums.CXCursorKind
 
 ---@class Parser
 ---@field root Node
@@ -36,7 +38,7 @@ local Parser = {
     ---@param unsaved_content string
     ---@param cflags string[]
     get_tu = function(self, path, unsaved_content, cflags)
-        local index = clang.dll.clang_createIndex(0, 0)
+        local index = clang.clang_createIndex(0, 0)
 
         local arguments = {
             "-x",
@@ -69,14 +71,14 @@ local Parser = {
             unsaved.Length = #unsaved_content
         end
 
-        local tu = clang.dll.clang_parseTranslationUnit(
+        local tu = clang.clang_parseTranslationUnit(
             index,
             path,
             array,
             #arguments,
             unsaved,
             n_unsaved,
-            clang.C.CXTranslationUnit_DetailedPreprocessingRecord
+            mod.enums.CXTranslationUnit_Flags.CXTranslationUnit_DetailedPreprocessingRecord
         )
 
         return tu
@@ -86,17 +88,17 @@ local Parser = {
     visit_recursive = function(self, tu)
         local visitor = ffi.cast("CXCursorVisitorP", function(cursor, parent, data)
             self:push(cursor[0], parent[0])
-            return clang.C.CXChildVisit_Recurse
+            return mod.enums.CXChildVisitResult.CXChildVisit_Recurse
         end)
-        local cursor = clang.dll.clang_getTranslationUnitCursor(tu)
+        local cursor = clang.clang_getTranslationUnitCursor(tu)
         self:set_root(cursor)
-        clang.dll.clang_visitChildren(cursor, visitor, nil)
+        clang.clang_visitChildren(cursor, visitor, nil)
         visitor:free()
     end,
 
     ---@param self Parser
     get_or_create_node = function(self, cursor, parent_cursor)
-        local c = clang.dll.clang_hashCursor(cursor)
+        local c = clang.clang_hashCursor(cursor)
         local node = self.nodemap[c]
         if node then
             return node
@@ -105,62 +107,62 @@ local Parser = {
         node = Node.new(cursor, c, parent_cursor)
         self.nodemap[c] = node
 
-        if cursor.kind == C.CXCursor_TranslationUnit then
-        elseif cursor.kind == C.CXCursor_MacroDefinition then
-        elseif cursor.kind == C.CXCursor_InclusionDirective then
-        elseif cursor.kind == C.CXCursor_MacroExpansion then
-        elseif cursor.kind == C.CXCursor_UnexposedDecl then
-        elseif cursor.kind == C.CXCursor_ClassTemplate then
-        elseif cursor.kind == C.CXCursor_TemplateTypeParameter then
-        elseif cursor.kind == C.CXCursor_CXXTypeidExpr then
-        elseif cursor.kind == C.CXCursor_ClassTemplatePartialSpecialization then
-        elseif cursor.kind == C.CXCursor_StaticAssert then
-        elseif cursor.kind == C.CXCursor_DeclRefExpr then
-        elseif cursor.kind == C.CXCursor_TemplateRef then
-        elseif cursor.kind == C.CXCursor_FunctionTemplate then
-        elseif cursor.kind == C.CXCursor_NonTypeTemplateParameter then
-        elseif cursor.kind == C.CXCursor_VarDecl then
-        elseif cursor.kind == C.CXCursor_UnexposedAttr then
-        elseif cursor.kind == C.CXCursor_CompoundStmt then
-        elseif cursor.kind == C.CXCursor_ReturnStmt then
-        elseif cursor.kind == C.CXCursor_CallExpr then
-        elseif cursor.kind == C.CXCursor_UnexposedExpr then
-        elseif cursor.kind == C.CXCursor_CStyleCastExpr then
-        elseif cursor.kind == C.CXCursor_UnaryOperator then
-            node.tokens = clang.get_tokens(cursor)
-        elseif cursor.kind == C.CXCursor_BinaryOperator then
-            node.tokens = clang.get_tokens(cursor)
-        elseif cursor.kind == C.CXCursor_ParenExpr then
-            node.tokens = clang.get_tokens(cursor)
-        elseif cursor.kind == C.CXCursor_CXXBoolLiteralExpr then
-        elseif cursor.kind == C.CXCursor_DLLImport then
+        if cursor.kind == CXCursorKind.CXCursor_TranslationUnit then
+        elseif cursor.kind == CXCursorKind.CXCursor_MacroDefinition then
+        elseif cursor.kind == CXCursorKind.CXCursor_InclusionDirective then
+        elseif cursor.kind == CXCursorKind.CXCursor_MacroExpansion then
+        elseif cursor.kind == CXCursorKind.CXCursor_UnexposedDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_ClassTemplate then
+        elseif cursor.kind == CXCursorKind.CXCursor_TemplateTypeParameter then
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXTypeidExpr then
+        elseif cursor.kind == CXCursorKind.CXCursor_ClassTemplatePartialSpecialization then
+        elseif cursor.kind == CXCursorKind.CXCursor_StaticAssert then
+        elseif cursor.kind == CXCursorKind.CXCursor_DeclRefExpr then
+        elseif cursor.kind == CXCursorKind.CXCursor_TemplateRef then
+        elseif cursor.kind == CXCursorKind.CXCursor_FunctionTemplate then
+        elseif cursor.kind == CXCursorKind.CXCursor_NonTypeTemplateParameter then
+        elseif cursor.kind == CXCursorKind.CXCursor_VarDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_UnexposedAttr then
+        elseif cursor.kind == CXCursorKind.CXCursor_CompoundStmt then
+        elseif cursor.kind == CXCursorKind.CXCursor_ReturnStmt then
+        elseif cursor.kind == CXCursorKind.CXCursor_CallExpr then
+        elseif cursor.kind == CXCursorKind.CXCursor_UnexposedExpr then
+        elseif cursor.kind == CXCursorKind.CXCursor_CStyleCastExpr then
+        elseif cursor.kind == CXCursorKind.CXCursor_UnaryOperator then
+            node.tokens = clang_util.get_tokens(cursor)
+        elseif cursor.kind == CXCursorKind.CXCursor_BinaryOperator then
+            node.tokens = clang_util.get_tokens(cursor)
+        elseif cursor.kind == CXCursorKind.CXCursor_ParenExpr then
+            node.tokens = clang_util.get_tokens(cursor)
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXBoolLiteralExpr then
+        elseif cursor.kind == CXCursorKind.CXCursor_DLLImport then
             --skip
-        elseif cursor.kind == C.CXCursor_StringLiteral then
-            node.tokens = clang.get_tokens(cursor)
-        elseif cursor.kind == C.CXCursor_IntegerLiteral then
-            node.tokens = clang.get_tokens(cursor)
-        elseif cursor.kind == C.CXCursor_FunctionDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_StringLiteral then
+            node.tokens = clang_util.get_tokens(cursor)
+        elseif cursor.kind == CXCursorKind.CXCursor_IntegerLiteral then
+            node.tokens = clang_util.get_tokens(cursor)
+        elseif cursor.kind == CXCursorKind.CXCursor_FunctionDecl then
             node.node_type = "function"
-            local cxType = clang.dll.clang_getCursorResultType(cursor)
+            local cxType = clang.clang_getCursorResultType(cursor)
             local t, is_const = types.type_from_cx_type(cxType, cursor)
             node.type = t
             node.is_const = is_const
-        elseif cursor.kind == C.CXCursor_ParmDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_ParmDecl then
             node.node_type = "param"
-            local cxType = clang.dll.clang_getCursorType(cursor)
+            local cxType = clang.clang_getCursorType(cursor)
             local t, is_const = types.type_from_cx_type(cxType, cursor)
             node.type = t
             node.is_const = is_const
-        elseif cursor.kind == C.CXCursor_FieldDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_FieldDecl then
             node.node_type = "field"
-            local cxType = clang.dll.clang_getCursorType(cursor)
+            local cxType = clang.clang_getCursorType(cursor)
             local t, is_const = types.type_from_cx_type(cxType, cursor)
             node.type = t
             -- node.is_const = is_const
-        elseif cursor.kind == C.CXCursor_TypeRef then
+        elseif cursor.kind == CXCursorKind.CXCursor_TypeRef then
             node.node_type = "typeref"
-            local referenced = clang.dll.clang_getCursorReferenced(cursor)
-            local ref_hash = clang.dll.clang_hashCursor(referenced)
+            local referenced = clang.clang_getCursorReferenced(cursor)
+            local ref_hash = clang.clang_hashCursor(referenced)
             node.ref_hash = ref_hash
 
             local ref_list = self.reverse_reference_map[ref_hash]
@@ -169,19 +171,19 @@ local Parser = {
                 self.reverse_reference_map[ref_hash] = ref_list
             end
             table.insert(ref_list, node)
-        elseif cursor.kind == C.CXCursor_EnumDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_EnumDecl then
             node.node_type = "enum"
             local t = types.get_enum_int_type(cursor)
             node.base_type = t
-        elseif cursor.kind == C.CXCursor_EnumConstantDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_EnumConstantDecl then
             node.node_type = "enum_constant"
-            local value = tonumber(clang.dll.clang_getEnumConstantDeclValue(cursor))
+            local value = tonumber(clang.clang_getEnumConstantDeclValue(cursor))
             node.value = value
-        elseif cursor.kind == C.CXCursor_TypedefDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_TypedefDecl then
             node.node_type = "typedef"
             local t = types.get_underlying_type(cursor)
             node.type = t
-        elseif cursor.kind == C.CXCursor_StructDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_StructDecl then
             node.node_type = "struct"
         else
             assert(false)
@@ -199,7 +201,7 @@ local Parser = {
     push = function(self, cursor, parent_cursor)
         local node = self:get_or_create_node(cursor, parent_cursor)
 
-        local p = clang.dll.clang_hashCursor(parent_cursor)
+        local p = clang.clang_hashCursor(parent_cursor)
         local parent = self.nodemap[p]
         if not parent.children then
             parent.children = {}

@@ -77,9 +77,6 @@ end
 
 ---@param self Typedef
 types.Typedef.cdef = function(self)
-    if self.name == "CXTranslationUnit" then
-        a = 0
-    end
     if types.is_anonymous(self.type) then
         return string.format("typedef %s %s", self.type:cdef(), self.name)
     else

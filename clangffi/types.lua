@@ -1,7 +1,7 @@
 local utils = require("clangffi.utils")
-local clang = require("clangffi.clang")
-local C = clang.C
-
+local mod = require("clang.mod")
+local clang = mod.libs.clang
+local CXTypeKind = mod.enums.CXTypeKind
 local M = {}
 
 ---
@@ -101,7 +101,11 @@ M.Param = {
     ---@param t any
     set_type = function(self, t)
         if getmetatable(self.type) == M.Pointer then
-            self.type.pointee = t
+            if getmetatable(self.type.pointee) == M.Pointer then
+                self.type.pointee.pointee = t
+            else
+                self.type.pointee = t
+            end
         else
             self.type = t
         end
@@ -254,68 +258,68 @@ M.is_anonymous = function(t)
 end
 
 local primitives = {
-    [C.CXType_Void] = M.Void,
+    [CXTypeKind.CXType_Void] = M.Void,
 
-    [C.CXType_Bool] = M.Bool,
+    [CXTypeKind.CXType_Bool] = M.Bool,
 
-    [C.CXType_WChar] = M.UInt16, -- Windows
-    [C.CXType_UShort] = M.UInt16,
-    [C.CXType_UInt] = M.UInt32,
-    [C.CXType_ULong] = M.UInt32,
-    [C.CXType_ULongLong] = M.UInt64,
+    [CXTypeKind.CXType_WChar] = M.UInt16, -- Windows
+    [CXTypeKind.CXType_UShort] = M.UInt16,
+    [CXTypeKind.CXType_UInt] = M.UInt32,
+    [CXTypeKind.CXType_ULong] = M.UInt32,
+    [CXTypeKind.CXType_ULongLong] = M.UInt64,
 
-    [C.CXType_Char_S] = M.Int8,
-    [C.CXType_Int] = M.Int32,
-    [C.CXType_Long] = M.Int32,
-    [C.CXType_LongLong] = M.Int64,
+    [CXTypeKind.CXType_Char_S] = M.Int8,
+    [CXTypeKind.CXType_Int] = M.Int32,
+    [CXTypeKind.CXType_Long] = M.Int32,
+    [CXTypeKind.CXType_LongLong] = M.Int64,
 
-    [C.CXType_Double] = M.Double,
+    [CXTypeKind.CXType_Double] = M.Double,
 }
 
 ---@param cxType any
 ---@param cursor any
 M.type_from_cx_type = function(cxType, cursor)
-    local is_const = clang.dll.clang_isConstQualifiedType(cxType) ~= 0
+    local is_const = clang.clang_isConstQualifiedType(cxType) ~= 0
 
     local primitive = primitives[tonumber(cxType.kind)]
     if primitive then
         return primitive, is_const
     end
 
-    if cxType.kind == C.CXType_Unexposed then
+    if cxType.kind == CXTypeKind.CXType_Unexposed then
         -- template T ?
         return "unexposed", is_const
-    elseif cxType.kind == C.CXType_Pointer or cxType.kind == C.CXType_LValueReference then
+    elseif cxType.kind == CXTypeKind.CXType_Pointer or cxType.kind == CXTypeKind.CXType_LValueReference then
         -- pointer
-        local pointeeCxType = clang.dll.clang_getPointeeType(cxType)
+        local pointeeCxType = clang.clang_getPointeeType(cxType)
         local pointeeType, _is_const = M.type_from_cx_type(pointeeCxType, cursor)
         return utils.new(M.Pointer, {
             pointee = pointeeType,
             is_const = _is_const,
         }),
             is_const
-    elseif cxType.kind == C.CXType_ConstantArray then
+    elseif cxType.kind == CXTypeKind.CXType_ConstantArray then
         -- -- array[N]
-        local array_size = tonumber(clang.dll.clang_getArraySize(cxType))
-        local elementCxType = clang.dll.clang_getArrayElementType(cxType)
+        local array_size = tonumber(clang.clang_getArraySize(cxType))
+        local elementCxType = clang.clang_getArrayElementType(cxType)
         local elementType, _is_const = M.type_from_cx_type(elementCxType, cursor)
         return utils.new(M.Array, {
             size = array_size,
             element = elementType,
         }),
             is_const
-    elseif cxType.kind == C.CXType_DependentSizedArray then
+    elseif cxType.kind == CXTypeKind.CXType_DependentSizedArray then
         -- -- param array
-        local array_size = clang.dll.clang_getArraySize(cxType)
-        local elementCxType = clang.dll.clang_getArrayElementType(cxType)
+        local array_size = clang.clang_getArraySize(cxType)
+        local elementCxType = clang.clang_getArrayElementType(cxType)
         local elementType, _is_const = M.type_from_cx_type(elementCxType, cursor)
         return utils.new(M.Pointer, {
             pointee = elementType,
             is_const = _is_const,
         }),
             is_const
-    elseif cxType.kind == C.CXType_FunctionProto then
-        local resultCxType = clang.dll.clang_getResultType(cxType)
+    elseif cxType.kind == CXTypeKind.CXType_FunctionProto then
+        local resultCxType = clang.clang_getResultType(cxType)
         local resultType, _is_const = M.type_from_cx_type(resultCxType, cursor)
         return utils.new(M.FunctionProto, {
             result_type = resultType,
@@ -323,9 +327,9 @@ M.type_from_cx_type = function(cxType, cursor)
             params = {},
         }),
             is_const
-    elseif cxType.kind == C.CXType_Typedef then
+    elseif cxType.kind == CXTypeKind.CXType_Typedef then
         return utils.new(M.Typedef, {})
-    elseif cxType.kind == C.CXType_Elaborated then
+    elseif cxType.kind == CXTypeKind.CXType_Elaborated then
         return "elaborated", is_const
     else
         assert(false)
@@ -335,7 +339,7 @@ end
 ---@param cursor any
 ---@return Enum
 M.get_enum_int_type = function(cursor)
-    local cx_type = clang.dll.clang_getEnumDeclIntegerType(cursor)
+    local cx_type = clang.clang_getEnumDeclIntegerType(cursor)
     local base_type, _is_const = M.type_from_cx_type(cx_type, cursor)
     return base_type
 end
@@ -343,7 +347,7 @@ end
 ---@param cursor any
 ---@return Typedef
 M.get_underlying_type = function(cursor)
-    local underlying = clang.dll.clang_getTypedefDeclUnderlyingType(cursor)
+    local underlying = clang.clang_getTypedefDeclUnderlyingType(cursor)
     local base_type, _is_const = M.type_from_cx_type(underlying, cursor)
     return base_type
 end

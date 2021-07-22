@@ -1,5 +1,7 @@
-local clang = require("clangffi.clang")
 local utils = require("clangffi.utils")
+local clang_util = require("clangffi.clang_util")
+local mod = require("clang.mod")
+local clang = mod.libs.clang
 
 local function traverse(root, stack)
     if not stack then
@@ -98,13 +100,13 @@ local Node = {
 ---@param c integer
 ---@return Node
 Node.new = function(cursor, c, parent_cursor)
-    local cxType = clang.dll.clang_getCursorType(cursor)
+    local cxType = clang.clang_getCursorType(cursor)
     local node = utils.new(Node, {
         hash = c,
-        spelling = clang.get_spelling_from_cursor(cursor),
+        spelling = clang_util.get_spelling_from_cursor(cursor),
         cursor_kind = cursor.kind,
         type_kind = cxType.kind,
-        location = clang.get_location(cursor),
+        location = clang_util.get_location(cursor),
     })
     return node
 end

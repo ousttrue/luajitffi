@@ -1,7 +1,8 @@
 local utils = require("clangffi.utils")
 local types = require("clangffi.types")
-local clang = require("clangffi.clang")
-local C = clang.C
+local mod = require("clang.mod")
+local clang = mod.libs.clang
+local CXCursorKind = mod.enums.CXCursorKind
 
 ---@class ExportHeader
 ---@field header string
@@ -60,14 +61,14 @@ local Exporter = {
             if #stack == 0 then
                 -- skip self
             elseif #stack == 1 then
-                if x.cursor_kind == C.CXCursor_DLLImport then
+                if x.cursor_kind == CXCursorKind.CXCursor_DLLImport then
                     t.dll_export = true
-                elseif x.cursor_kind == C.CXCursor_TypeRef then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     -- return
                     t:set_result_type(self:export(ref_node))
-                elseif x.cursor_kind == C.CXCursor_ParmDecl then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_ParmDecl then
                     local p = utils.new(types.Param, {
                         name = x.spelling,
                         type = x.type,
@@ -78,13 +79,13 @@ local Exporter = {
                     if types.is_functionproto(x.type) then
                         self:export_functionproto(x)
                     end
-                elseif x.cursor_kind == C.CXCursor_UnexposedAttr then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_UnexposedAttr then
                     -- CINDEX_DEPRECATED
                 else
                     assert(false)
                 end
             elseif #stack == 2 then
-                if x.cursor_kind == C.CXCursor_TypeRef then
+                if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
                     -- if parent.node_type == "param" then
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
@@ -115,12 +116,12 @@ local Exporter = {
             if #stack == 0 then
                 -- skip self
             elseif #stack == 1 then
-                if x.cursor_kind == C.CXCursor_TypeRef then
+                if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     -- return
                     t:set_result_type(self:export(ref_node))
-                elseif x.cursor_kind == C.CXCursor_ParmDecl then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_ParmDecl then
                     local p = utils.new(types.Param, {
                         name = x.spelling,
                         type = x.type,
@@ -131,7 +132,7 @@ local Exporter = {
                     assert(false)
                 end
             elseif #stack == 2 then
-                if x.cursor_kind == C.CXCursor_TypeRef then
+                if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
                     -- if parent.node_type == "param" then
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
@@ -164,7 +165,7 @@ local Exporter = {
             if #stack == 0 then
                 -- self
             elseif #stack == 1 then
-                if x.cursor_kind == C.CXCursor_EnumConstantDecl then
+                if x.cursor_kind == CXCursorKind.CXCursor_EnumConstantDecl then
                     table.insert(
                         t.values,
                         utils.new(types.EnumConst, {
@@ -176,15 +177,15 @@ local Exporter = {
                     assert(false)
                 end
             elseif #stack == 2 then
-                if x.cursor_kind == C.CXCursor_IntegerLiteral then
+                if x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
                     t.values[#t.values].value = table.concat(x.tokens, " ")
-                elseif x.cursor_kind == C.CXCursor_DeclRefExpr then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
                     t.values[#t.values].value = x.spelling
-                elseif x.cursor_kind == C.CXCursor_BinaryOperator then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_BinaryOperator then
                     t.values[#t.values].value = table.concat(x.tokens, " ")
-                elseif x.cursor_kind == C.CXCursor_UnaryOperator then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_UnaryOperator then
                     t.values[#t.values].value = table.concat(x.tokens, "")
-                elseif x.cursor_kind == C.CXCursor_ParenExpr then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_ParenExpr then
                     t.values[#t.values].value = table.concat(x.tokens, "")
                 else
                     assert(false)
@@ -257,7 +258,7 @@ local Exporter = {
             if #stack == 0 then
                 --self
             elseif #stack == 1 then
-                if x.cursor_kind == C.CXCursor_FieldDecl then
+                if x.cursor_kind == CXCursorKind.CXCursor_FieldDecl then
                     table.insert(
                         t.fields,
                         utils.new(types.Field, {
@@ -269,21 +270,21 @@ local Exporter = {
                     if types.is_functionproto(x.type) then
                         self:export_functionproto(x)
                     end
-                elseif x.cursor_kind == C.CXCursor_TypeRef then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
                     assert(false)
                 else
                     -- nested type
                     -- assert(false)
                 end
             elseif #stack == 2 then
-                if x.cursor_kind == C.CXCursor_TypeRef then
+                if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
                     -- if parent.node_type == "field" then
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     t.fields[#t.fields]:set_type(self:export(ref_node))
                     -- end
-                elseif x.cursor_kind == C.CXCursor_IntegerLiteral then
-                elseif x.cursor_kind == C.CXCursor_DeclRefExpr then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
                 else
                 end
             else

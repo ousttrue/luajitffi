@@ -163,6 +163,11 @@ lua clangffi.lua
             end
         end
 
+        if name == "Index" then
+            w:write("// http://wiki.luajit.org/FFI-Callbacks-with-pass-by-value-structs\n")
+            w:write("typedef enum CXChildVisitResult (*CXCursorVisitorP)(CXCursor *cursor, CXCursor *parent, CXClientData client_data);\n")
+        end
+
         w:write("]]\n")
 
         w:close()

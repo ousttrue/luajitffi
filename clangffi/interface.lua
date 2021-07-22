@@ -37,14 +37,15 @@ local Interface = {
 local ffi = require('ffi')
 
 -- cdef
-require('generated.clang.cdef.corecrt')
-require('generated.clang.cdef.CXString')
-require('generated.clang.cdef.vcruntime')
-require('generated.clang.cdef.CXErrorCode')
-require('generated.clang.cdef.Index')
+require('clang.cdef.corecrt')
+require('clang.cdef.CXString')
+require('clang.cdef.vcruntime')
+require('clang.cdef.CXErrorCode')
+require('clang.cdef.Index')
 
 local M = {
     libs = {},
+    cache = {},
 }
 ]])
 
@@ -89,10 +90,13 @@ local M = {
 -- %s
 -----------------------------------------------------------------------------
 local clang = ffi.load('%s')
+M.cache.%s = %s
 M.libs.%s = {
 ]],
                 lib,
                 basename,
+                lib_name,
+                lib_name,
                 lib_name
             ))
 

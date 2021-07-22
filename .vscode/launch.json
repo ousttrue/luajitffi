@@ -18,7 +18,7 @@
                 "-EC:/Program Files/LLVM/include/clang-c/Index.h,libclang.dll",
                 "-EC:/Program Files/LLVM/include/clang-c/CXString.h,libclang.dll",
                 // OUt
-                "-O./generated/clang",
+                "-O./clang",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
