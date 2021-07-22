@@ -89,7 +89,7 @@ end
 ---@param args string[]
 local function main(args)
     local usage = [[usage:
-lua clangffi.lua
+lua main.lua
 -Iinclude_dir
 -Eexport_header,dll_name.dll
 -Oout_dir

@@ -1,9 +1,11 @@
 # clang-ffi
 luajit FFI generator using libclang
 
-## FirstVersion
+## ToDo
 
-* created from from `include/clang-c/Index.h` and `CXString.h` of LLVM-11(64bit)
+* [ ] lfs alternative and luarocks to luajit
+* [ ] fix set_type
+* [ ] imgui(c++ mangle)
 
 ## Setup
 
@@ -15,6 +17,12 @@ luajit FFI generator using libclang
 
 ## Usage
 
+* require PATH environment variable to `libclang.dll`
+
 ```
-> lua/bin/lua.exe main.lua
+lua main.lua
+-Iinclude_dir(CFLAGS)
+-DDefinition(CFLAGS)
+-Eexport_header,dll_name.dll
+-Oout_dir
 ```
