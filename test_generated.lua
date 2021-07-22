@@ -1,4 +1,4 @@
-local module = require("generated.clang.interface")
+local mod = require("generated.clang.mod")
 local ffi = require("ffi")
 
 -- require("generated.clang.cdef.vcruntime")
@@ -17,3 +17,5 @@ print(error_code)
 -- require("generated.clang.cdef.CXString")
 -- require("generated.clang.cdef.Index")
 print(ffi.new("void*", nil) == nil)
+local index = mod.libs.clang.clang_createIndex(0, 0)
+print(index)

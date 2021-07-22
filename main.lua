@@ -170,7 +170,7 @@ lua clangffi.lua
     for i, export in ipairs(cmd.EXPORTS) do
         interface:push(export.link, export.header)
     end
-    local path = string.format("%s/interface.lua", cmd.OUT_DIR)
+    local path = string.format("%s/mod.lua", cmd.OUT_DIR)
     print(path)
     interface:generate(path, exporter)
 end
