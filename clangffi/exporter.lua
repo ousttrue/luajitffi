@@ -66,7 +66,7 @@ local Exporter = {
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     -- return
-                    t.result_type = self:export(ref_node)
+                    t:set_result_type(self:export(ref_node))
                 elseif x.cursor_kind == C.CXCursor_ParmDecl then
                     local p = utils.new(types.Param, {
                         name = x.spelling,
@@ -89,7 +89,7 @@ local Exporter = {
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    t.params[#t.params].type = self:export(ref_node)
+                    t.params[#t.params]:set_type(self:export(ref_node))
                     -- else
                     --     -- assert(false)
                     -- end
@@ -119,7 +119,7 @@ local Exporter = {
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     -- return
-                    t.result_type = self:export(ref_node)
+                    t:set_result_type(self:export(ref_node))
                 elseif x.cursor_kind == C.CXCursor_ParmDecl then
                     local p = utils.new(types.Param, {
                         name = x.spelling,
@@ -136,7 +136,7 @@ local Exporter = {
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    t.params[#t.params].type = self:export(ref_node)
+                    t.params[#t.params]:set_type(self:export(ref_node))
                     -- else
                     --     -- assert(false)
                     -- end
@@ -220,13 +220,13 @@ local Exporter = {
                 if x.node_type == "typeref" then
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    t.type = self:export(ref_node)
+                    t:set_type(self:export(ref_node))
                 elseif x.node_type == "struct" then
                     -- tyepdef struct {} hoge;
-                    t.type = self:export(x)
+                    t:set_type(self:export(x))
                 elseif x.node_type == "enum" then
                     -- typedef enum {} hoge;
-                    t.type = self:export(x)
+                    t:set_type(self:export(x))
                 elseif x.node_type == "param" then
                     -- TODO: function pointer ?
                 else
@@ -279,7 +279,7 @@ local Exporter = {
                     -- if parent.node_type == "field" then
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    t.fields[#t.fields].type = self:export(ref_node)
+                    t.fields[#t.fields]:set_type(self:export(ref_node))
                     -- end
                 elseif x.cursor_kind == C.CXCursor_IntegerLiteral then
                 elseif x.cursor_kind == C.CXCursor_DeclRefExpr then

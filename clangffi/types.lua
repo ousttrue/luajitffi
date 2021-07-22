@@ -96,6 +96,16 @@ M.Param = {
     __tostring = function(self)
         return string.format("%s %s", self.type, self.name)
     end,
+
+    ---@param self Param
+    ---@param t any
+    set_type = function(self, t)
+        if getmetatable(self.type) == M.Pointer then
+            self.type.pointee = t
+        else
+            self.type = t
+        end
+    end,
 }
 
 ---@class Function
@@ -118,6 +128,16 @@ M.Function = {
         end)
         return string.format("%s%s %s(%s)", prefix, self.result_type, self.name, table.concat(params, ", "))
     end,
+
+    ---@param self Function
+    ---@param t any
+    set_result_type = function(self, t)
+        if getmetatable(self.result_type) == M.Pointer then
+            self.result_type.pointee = t
+        else
+            self.result_type = t
+        end
+    end,
 }
 
 ---@class FunctionProto
@@ -135,6 +155,16 @@ M.FunctionProto = {
         end)
         return string.format("%s%s (*)(%s)", prefix, self.result_type, table.concat(params, ", "))
     end,
+
+    ---@param self FunctionProto
+    ---@param t any
+    set_result_type = function(self, t)
+        if getmetatable(self.result_type) == M.Pointer then
+            self.result_type.pointee = t
+        else
+            self.result_type = t
+        end
+    end,
 }
 
 ---@class Typedef
@@ -147,6 +177,16 @@ M.Typedef = {
     __tostring = function(self)
         return string.format("typedef %s = %s", self.name, self.type)
     end,
+
+    ---@param self Typedef
+    ---@param t any
+    set_type = function(self, t)
+        if getmetatable(self.type) == M.Pointer then
+            self.type.pointee = t
+        else
+            self.type = t
+        end
+    end,
 }
 
 ---@class Field
@@ -158,6 +198,16 @@ M.Field = {
     ---@return string
     __tostring = function(self)
         return string.format("%s %s", self.type, self.name)
+    end,
+
+    ---@param self Field
+    ---@param t any
+    set_type = function(self, t)
+        if getmetatable(self.type) == M.Pointer then
+            self.type.pointee = t
+        else
+            self.type = t
+        end
     end,
 }
 
@@ -261,7 +311,9 @@ M.type_from_cx_type = function(cxType, cursor)
         local elementType, _is_const = M.type_from_cx_type(elementCxType, cursor)
         return utils.new(M.Pointer, {
             pointee = elementType,
-        }), is_const
+            is_const = _is_const,
+        }),
+            is_const
     elseif cxType.kind == C.CXType_FunctionProto then
         local resultCxType = clang.dll.clang_getResultType(cxType)
         local resultType, _is_const = M.type_from_cx_type(resultCxType, cursor)
