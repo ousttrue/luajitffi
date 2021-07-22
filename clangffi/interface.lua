@@ -2,6 +2,8 @@ local utils = require("clangffi.utils")
 local emmy = require("clangffi.emmy")
 local types = require("clangffi.types")
 
+local FUNCTION = "fun"
+
 local function get_name(i, name)
     if name and #name > 0 then
         return emmy.escape_symbol(name)
@@ -101,7 +103,7 @@ M.libs.%s = {
                     end) > 0
                 then
                     for i, f in ipairs(export_header.functions) do
-                        if true then
+                        if FUNCTION == "wrap" then
                             for j, p in ipairs(f.params) do
                                 w:write(string.format("    ---@param %s %s\n", p.name, emmy.get_typename(p.type)))
                             end
