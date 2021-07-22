@@ -182,6 +182,10 @@ local Exporter = {
                     t.values[#t.values].value = x.spelling
                 elseif x.cursor_kind == C.CXCursor_BinaryOperator then
                     t.values[#t.values].value = table.concat(x.tokens, " ")
+                elseif x.cursor_kind == C.CXCursor_UnaryOperator then
+                    t.values[#t.values].value = table.concat(x.tokens, "")
+                elseif x.cursor_kind == C.CXCursor_ParenExpr then
+                    t.values[#t.values].value = table.concat(x.tokens, "")
                 else
                     assert(false)
                 end

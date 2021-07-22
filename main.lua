@@ -116,12 +116,15 @@ lua clangffi.lua
     print("export...")
     local exporter = Exporter.new(parser.nodemap)
     for _, node in parser.root:traverse() do
-        if node.node_type == "function" then
-            -- only function
-            for i, export in ipairs(cmd.EXPORTS) do
+        for i, export in ipairs(cmd.EXPORTS) do
+            if node.location then
                 if export.header == node.location.path then
                     -- only in export header
-                    exporter:export(node)
+                    if node.node_type == "function" then
+                        exporter:export(node)
+                    elseif node.node_type == "enum" then
+                        exporter:export(node)
+                    end
                 end
             end
         end

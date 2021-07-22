@@ -115,7 +115,6 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_CXXTypeidExpr then
         elseif cursor.kind == C.CXCursor_ClassTemplatePartialSpecialization then
         elseif cursor.kind == C.CXCursor_StaticAssert then
-        elseif cursor.kind == C.CXCursor_UnaryOperator then
         elseif cursor.kind == C.CXCursor_DeclRefExpr then
         elseif cursor.kind == C.CXCursor_TemplateRef then
         elseif cursor.kind == C.CXCursor_FunctionTemplate then
@@ -127,9 +126,12 @@ local Parser = {
         elseif cursor.kind == C.CXCursor_CallExpr then
         elseif cursor.kind == C.CXCursor_UnexposedExpr then
         elseif cursor.kind == C.CXCursor_CStyleCastExpr then
+        elseif cursor.kind == C.CXCursor_UnaryOperator then
+            node.tokens = clang.get_tokens(cursor)
         elseif cursor.kind == C.CXCursor_BinaryOperator then
             node.tokens = clang.get_tokens(cursor)
         elseif cursor.kind == C.CXCursor_ParenExpr then
+            node.tokens = clang.get_tokens(cursor)
         elseif cursor.kind == C.CXCursor_CXXBoolLiteralExpr then
         elseif cursor.kind == C.CXCursor_DLLImport then
             --skip
@@ -255,7 +257,9 @@ local Parser = {
                 local replace = self:replace_typedef(node)
                 if replace then
                     -- replace parent
-                    local path = utils.map(stack, function(x)return x end)
+                    local path = utils.map(stack, function(x)
+                        return x
+                    end)
                     table.remove(path)
                     local parent = self.root:from_path(path)
                     assert(parent)
