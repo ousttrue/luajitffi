@@ -268,7 +268,7 @@ local Exporter = {
                     assert(false)
                 else
                     -- nested type
-                    assert(false)
+                    -- assert(false)
                 end
             elseif #stack == 2 then
                 if x.cursor_kind == C.CXCursor_TypeRef then
