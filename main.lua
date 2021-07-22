@@ -1,6 +1,7 @@
 local utils = require("clangffi.utils")
 local Parser = require("clangffi.parser")
 local Exporter = require("clangffi.exporter")
+local Interface = require("clangffi.interface")
 local lfs = require("lfs")
 
 ---@class Export
@@ -163,6 +164,15 @@ lua clangffi.lua
 
         w:close()
     end
+
+    -- interface
+    local interface = Interface.new()
+    for i, export in ipairs(cmd.EXPORTS) do
+        interface:push(export.link, export.header)
+    end
+    local path = string.format("%s/interface.lua", cmd.OUT_DIR)
+    print(path)
+    interface:generate(path, exporter)
 end
 
 main({ ... })
