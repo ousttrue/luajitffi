@@ -1,4 +1,4 @@
-# clang-ffi
+# LuajitFFI
 luajit FFI generator using libclang
 
 ## ToDo
@@ -6,6 +6,7 @@ luajit FFI generator using libclang
 * [ ] lfs alternative and luarocks to luajit
 * [ ] fix set_type
 * [ ] imgui(c++ mangle)
+* [ ] automation [FFI Callbacks with pass by value structs](http://wiki.luajit.org/FFI-Callbacks-with-pass-by-value-structs)
 
 ## Setup
 
