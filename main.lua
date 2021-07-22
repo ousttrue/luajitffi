@@ -134,7 +134,7 @@ lua clangffi.lua
         mkdirp(cdef_out_dir)
     end
 
-    require("cdef")
+    require("clangffi.cdef")
     for header, export_header in pairs(exporter.headers) do
         -- print(string.format("// %s", export_header))
         local _, name, ext = utils.split_ext(export_header.header)

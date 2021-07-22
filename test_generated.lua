@@ -1,7 +1,6 @@
 local module = require("generated.clang.interface")
 local ffi = require("ffi")
 
-
 -- require("generated.clang.cdef.vcruntime")
 local size_t = ffi.new("size_t")
 print(ffi.typeof(size_t))
