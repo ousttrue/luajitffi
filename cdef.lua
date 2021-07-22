@@ -53,11 +53,21 @@ local function get_typename(t, param_name)
         end
     elseif mt == types.Array then
         return string.format("%s%s[%d]", get_typename(t.element), name, t.size)
-    elseif mt == types.Typedef or mt == types.Enum or mt == types.Struct then
+    elseif mt == types.Typedef then
         if not t.name then
             return "XXX no name XXX"
         end
         return t.name .. name
+    elseif mt == types.Enum then
+        if not t.name then
+            return "XXX no name XXX"
+        end
+        return "enum " .. t.name .. name
+    elseif mt == types.Struct then
+        if not t.name then
+            return "XXX no name XXX"
+        end
+        return "struct " .. t.name .. name
     elseif mt == types.FunctionProto then
         assert(false)
     else
@@ -67,30 +77,34 @@ end
 
 ---@param self Typedef
 types.Typedef.cdef = function(self)
-    return string.format("typedef %s;\n", get_typename(self.type, self.name))
+    if types.is_anonymous(self.type) then
+        return string.format("typedef %s %s", self.type:cdef(), self.name)
+    else
+        return string.format("typedef %s", get_typename(self.type, self.name))
+    end
 end
 
 ---@param self Struct
 types.Struct.cdef = function(self)
     if #self.fields == 0 then
-        return string.format("typedef struct %s %s;\n", self.name, self.name)
+        return string.format("struct %s", self.name, self.name)
     end
 
-    local s = string.format("typedef struct %s {\n", self.name)
+    local s = string.format("struct %s{\n", self.name)
     for i, f in ipairs(self.fields) do
         s = s .. string.format("    %s;\n", get_typename(f.type, f.name))
     end
-    s = s .. string.format("} %s;\n", self.name)
+    s = s .. string.format("}")
     return s
 end
 
 ---@param self Enum
 types.Enum.cdef = function(self)
-    local s = string.format("typedef enum %s {\n", self.name)
+    local s = string.format("enum %s{\n", self.name)
     for i, v in ipairs(self.values) do
         s = s .. string.format("    %s = %s,\n", v.name, v.value)
     end
-    s = s .. string.format("} %s;\n", self.name)
+    s = s .. string.format("}")
     return s
 end
 
@@ -104,6 +118,6 @@ types.Function.cdef = function(self)
         end
         s = s .. "\n"
     end
-    s = s .. ");\n"
+    s = s .. ")"
     return s
 end

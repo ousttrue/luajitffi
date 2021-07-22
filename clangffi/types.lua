@@ -194,6 +194,15 @@ M.Enum = {
     end,
 }
 
+---@param t any
+---@return boolean
+M.is_anonymous = function(t)
+    local mt = getmetatable(t)
+    if mt == M.Struct or mt == M.Enum then
+        return not t.name or #t.name == 0
+    end
+end
+
 local primitives = {
     [C.CXType_Void] = M.Void,
 

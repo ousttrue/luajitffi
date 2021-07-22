@@ -80,8 +80,6 @@ local Exporter = {
                     end
                 elseif x.cursor_kind == C.CXCursor_UnexposedAttr then
                     -- CINDEX_DEPRECATED
-                    local parent = self.nodemap[x.parent_hash]
-                    local a = 0
                 else
                     assert(false)
                 end
@@ -194,8 +192,11 @@ local Exporter = {
             end
         end
 
-        table.insert(export_header.types, t)
-        self.used[node] = t
+        if not types.is_anonymous(t) then
+            table.insert(export_header.types, t)
+            self.used[node] = t
+        end
+
         return t
     end,
 
@@ -291,8 +292,10 @@ local Exporter = {
             end
         end
 
-        table.insert(export_header.types, t)
-        self.used[node] = t
+        if not types.is_anonymous(t) then
+            table.insert(export_header.types, t)
+            self.used[node] = t
+        end
         return t
     end,
 

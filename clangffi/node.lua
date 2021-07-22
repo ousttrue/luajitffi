@@ -75,6 +75,25 @@ local Node = {
         end
         assert(false)
     end,
+
+    remove_duplicated = function(self)
+        if not self.children then
+            return
+        end
+        local used = {}
+        local remove = {}
+        for i, child in ipairs(self.children) do
+            if used[child.hash] then
+                table.insert(remove, 1, i)
+            else
+                used[child.hash] = true
+                child:remove_duplicated()
+            end
+        end
+        for i, x in ipairs(remove) do
+            table.remove(self.children, x)
+        end
+    end,
 }
 
 ---@param cursor any

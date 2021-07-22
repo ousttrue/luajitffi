@@ -95,19 +95,22 @@ lua clangffi.lua
 ]]
 
     -- parse
+    print("parse...")
     local cmd = CommandLine.parse(args)
     local parser = Parser.new()
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
+    parser.root:remove_duplicated()
 
-    -- resolve typedef
-    while true do
-        local count = parser:resolve_typedef()
-        if count == 0 then
-            break
-        end
-    end
+    -- -- resolve typedef
+    -- while true do
+    --     local count = parser:resolve_typedef()
+    --     if count == 0 then
+    --         break
+    --     end
+    -- end
 
     -- export
+    print("export...")
     local exporter = Exporter.new(parser.nodemap)
     for _, node in parser.root:traverse() do
         if node.node_type == "function" then
@@ -122,15 +125,17 @@ lua clangffi.lua
     end
 
     -- generate
-    if not lfs.attributes(cmd.OUT_DIR) then
-        mkdirp(cmd.OUT_DIR)
+    print("generate...")
+    local cdef_out_dir = cmd.OUT_DIR .. "/cdef"
+    if not lfs.attributes(cdef_out_dir) then
+        mkdirp(cdef_out_dir)
     end
 
     require("cdef")
     for header, export_header in pairs(exporter.headers) do
         -- print(string.format("// %s", export_header))
         local _, name, ext = utils.split_ext(export_header.header)
-        local path = string.format("%s/%s.lua", cmd.OUT_DIR, name)
+        local path = string.format("%s/%s.lua", cdef_out_dir, name)
         print(path)
         local w = io.open(path, "wb")
 
@@ -141,12 +146,14 @@ lua clangffi.lua
         for i, t in ipairs(export_header.types) do
             local text = t:cdef()
             w:write(text)
+            w:write(";\n")
         end
 
         for i, f in ipairs(export_header.functions) do
             if f.dll_export then
                 local text = f:cdef()
                 w:write(text)
+                w:write(";\n")
             end
         end
 
