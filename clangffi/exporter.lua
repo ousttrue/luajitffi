@@ -209,31 +209,32 @@ local Exporter = {
             name = node.spelling,
             type = node.type,
         })
+
         if types.is_functionproto(node.type) then
             self:export_functionproto(node)
-        end
-
-        for stack, x in node:traverse() do
-            if #stack == 0 then
-                -- self
-            elseif #stack == 1 then
-                if x.node_type == "typeref" then
-                    local ref_node = self.nodemap[x.ref_hash]
-                    assert(ref_node)
-                    t:set_type(self:export(ref_node))
-                elseif x.node_type == "struct" then
-                    -- tyepdef struct {} hoge;
-                    t:set_type(self:export(x))
-                elseif x.node_type == "enum" then
-                    -- typedef enum {} hoge;
-                    t:set_type(self:export(x))
-                elseif x.node_type == "param" then
-                    -- TODO: function pointer ?
+        else
+            for stack, x in node:traverse() do
+                if #stack == 0 then
+                    -- self
+                elseif #stack == 1 then
+                    if x.node_type == "typeref" then
+                        local ref_node = self.nodemap[x.ref_hash]
+                        assert(ref_node)
+                        t:set_type(self:export(ref_node))
+                    elseif x.node_type == "struct" then
+                        -- tyepdef struct {} hoge;
+                        t:set_type(self:export(x))
+                    elseif x.node_type == "enum" then
+                        -- typedef enum {} hoge;
+                        t:set_type(self:export(x))
+                    elseif x.node_type == "param" then
+                        -- TODO: function pointer ?
+                    else
+                        assert(false)
+                    end
                 else
-                    assert(false)
+                    -- nested skip
                 end
-            else
-                -- nested skip
             end
         end
 
