@@ -23,6 +23,18 @@ M.map = function(t, f)
     return dst
 end
 
+---@generic S, T
+---@param t S[]
+---@param f fun(i:integer, src:S):T
+---@return T[]
+M.imap = function(t, f)
+    local dst = {}
+    for i, v in ipairs(t) do
+        table.insert(dst, f(i, v))
+    end
+    return dst
+end
+
 ---@generic S
 ---@param t S[]
 ---@param f fun(src:S):boolean

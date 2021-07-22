@@ -82,6 +82,10 @@ local map = {
     ["void"] = "",
 }
 
+local symbl_map = {
+    ["end"] = true,
+}
+
 return {
     get_typename = function(t)
         local result = get_typename(t)
@@ -98,5 +102,12 @@ return {
         end
 
         return result
+    end,
+
+    escape_symbol = function(name)
+        if symbl_map[name] then
+            return name .. "_"
+        end
+        return name
     end,
 }
