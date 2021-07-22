@@ -16,3 +16,4 @@ print(error_code)
 
 -- require("generated.clang.cdef.CXString")
 -- require("generated.clang.cdef.Index")
+print(ffi.new("void*", nil) == nil)
