@@ -3,7 +3,7 @@ local types = require("clangffi.types")
 ---@param t any
 ---@param param_name string use const if true
 ---@return string
-function get_typename(t, param_name)
+local function get_typename(t, param_name)
     if not t then
         return "XXX no t XXX"
     end
