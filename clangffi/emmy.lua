@@ -57,12 +57,15 @@ local function get_typename(t, param_name)
         if not t.name then
             return "XXX no name XXX"
         end
+        if getmetatable(t.type) == types.Enum then
+            return "integer"
+        end
         return t.name .. name
     elseif mt == types.Enum then
         if not t.name then
             return "XXX no name XXX"
         end
-        return t.name .. name
+        return "integer"
     elseif mt == types.Struct then
         if not t.name then
             return "XXX no name XXX"
@@ -78,8 +81,9 @@ end
 local map = {
     ["int"] = "integer",
     ["long long"] = "integer",
+    ["double"] = "number",
     ["const char*"] = "string",
-    ["void"] = "",
+    ["void"] = "nil",
 }
 
 local symbl_map = {
@@ -98,7 +102,7 @@ return {
         end
 
         if result:find("*") then
-            return "cdata"
+            return "any"
         end
 
         return result

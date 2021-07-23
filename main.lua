@@ -100,42 +100,39 @@ lua main.lua
     local cmd = CommandLine.parse(args)
     local parser = Parser.new()
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
+    print(parser.node_count)
 
     print("remove_duplicated...")
-    parser.root:remove_duplicated()
-
-    -- resolve typedef
-    if false then
-        while true do
-            local count = parser:resolve_typedef()
-            if count == 0 then
-                break
-            end
-        end
-    end
+    local count = parser.root:remove_duplicated()
+    print(count)
 
     -- export
     print("export...")
     local count = 0
     local exporter = Exporter.new(parser.nodemap)
+    local used = {}
     for _, node in parser.root:traverse() do
-        if count % 10000 == 0 then
-            print(count)
-        end
-        count = count + 1
-        if node.location then
-            for i, export in ipairs(cmd.EXPORTS) do
-                if export.header == node.location.path then
-                    -- only in export header
-                    if node.node_type == "function" then
-                        exporter:export(node)
-                    elseif node.node_type == "enum" then
-                        exporter:export(node)
+        if not used[node] then
+            used[node] = true
+            if count % 10000 == 0 then
+                print(count)
+            end
+            count = count + 1
+            if node.location then
+                for i, export in ipairs(cmd.EXPORTS) do
+                    if export.header == node.location.path then
+                        -- only in export header
+                        if node.node_type == "function" then
+                            exporter:export(node)
+                        elseif node.node_type == "enum" then
+                            exporter:export(node)
+                        end
                     end
                 end
             end
         end
     end
+    print(count)
 
     -- generate
     print("generate...")

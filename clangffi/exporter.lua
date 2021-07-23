@@ -79,6 +79,8 @@ local Exporter = {
                     if types.is_functionproto(x.type) then
                         self:export_functionproto(x)
                     end
+                elseif x.cursor_kind == CXCursorKind.CXCursor_FunctionDecl then
+                    --
                 elseif x.cursor_kind == CXCursorKind.CXCursor_UnexposedAttr then
                     -- CINDEX_DEPRECATED
                 else
@@ -222,11 +224,13 @@ local Exporter = {
                         local ref_node = self.nodemap[x.ref_hash]
                         assert(ref_node)
                         t:set_type(self:export(ref_node))
-                    elseif x.node_type == "struct" then
+                    elseif x.node_type == "struct" or x.node_type == "union" then
                         -- tyepdef struct {} hoge;
                         t:set_type(self:export(x))
                     elseif x.node_type == "enum" then
                         -- typedef enum {} hoge;
+                        t:set_type(self:export(x))
+                    elseif x.node_type == "typedef" then
                         t:set_type(self:export(x))
                     elseif x.node_type == "param" then
                         -- TODO: function pointer ?
@@ -281,7 +285,12 @@ local Exporter = {
                     -- if parent.node_type == "field" then
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    t.fields[#t.fields]:set_type(self:export(ref_node))
+
+                    if #t.fields == 0 then
+                        -- base class ?
+                    else
+                        t.fields[#t.fields]:set_type(self:export(ref_node))
+                    end
                     -- end
                 elseif x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
                 elseif x.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
@@ -313,7 +322,7 @@ local Exporter = {
             return self:export_enum(node)
         elseif node.node_type == "typedef" then
             return self:export_typedef(node)
-        elseif node.node_type == "struct" then
+        elseif node.node_type == "struct" or node.node_type == "union" then
             return self:export_struct(node)
         else
             assert(false)
