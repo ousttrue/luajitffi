@@ -100,8 +100,9 @@ lua main.lua
     local cmd = CommandLine.parse(args)
     local parser = Parser.new()
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
-    -- print("remove_duplicated...")
-    -- parser.root:remove_duplicated()
+
+    print("remove_duplicated...")
+    parser.root:remove_duplicated()
 
     -- resolve typedef
     if false then
@@ -115,10 +116,15 @@ lua main.lua
 
     -- export
     print("export...")
+    local count = 0
     local exporter = Exporter.new(parser.nodemap)
     for _, node in parser.root:traverse() do
-        for i, export in ipairs(cmd.EXPORTS) do
-            if node.location then
+        if count % 10000 == 0 then
+            print(count)
+        end
+        count = count + 1
+        if node.location then
+            for i, export in ipairs(cmd.EXPORTS) do
                 if export.header == node.location.path then
                     -- only in export header
                     if node.node_type == "function" then

@@ -3,6 +3,14 @@ local clang_util = require("clangffi.clang_util")
 local mod = require("clang.mod")
 local clang = mod.libs.clang
 
+local function cehck_stack(stack, target)
+    for i, item in ipairs(stack) do
+        if item[1] == target[1] and item[2] == target[2] then
+            assert(false, "!! circular !!")
+        end
+    end
+end
+
 local function traverse(root, stack)
     if not stack then
         return {}, root
@@ -11,14 +19,16 @@ local function traverse(root, stack)
     local current = root:from_path(stack)
     if current.children then
         local child = current.children[1]
+        cehck_stack(stack, { current, 1 })
         -- push
-        table.insert(stack, 1)
+        table.insert(stack, { current, 1 })
         return stack, child
     end
 
     while #stack > 0 do
-        local index = table.remove(stack)
-        table.insert(stack, index + 1)
+        local parent, index = unpack(table.remove(stack))
+        cehck_stack(stack, { parent, index + 1 })
+        table.insert(stack, { parent, index + 1 })
         local sibling = root:from_path(stack)
         if sibling then
             -- sibling
@@ -66,22 +76,31 @@ local Node = {
         assert(false)
     end,
 
-    remove_duplicated = function(self)
+    -- remove dup child and circular child
+    remove_duplicated = function(self, path)
         if not self.children then
             return
         end
+
+        path = path or {}
         local used = {}
-        local remove = {}
+        local children = {}
         for i, child in ipairs(self.children) do
-            if used[child.hash] then
-                table.insert(remove, 1, i)
-            else
-                used[child.hash] = true
-                child:remove_duplicated()
+            if not path[child] and not used[child] then
+                used[child] = true
+                table.insert(children, child)
             end
         end
-        for i, x in ipairs(remove) do
-            table.remove(self.children, x)
+        self.children = children
+
+        local copy = {}
+        for k, v in pairs(path) do
+            copy[k] = v
+        end
+        copy[self] = true
+
+        for i, child in ipairs(self.children) do
+            child:remove_duplicated(copy)
         end
     end,
 
@@ -89,7 +108,8 @@ local Node = {
         local current = root
         local i = 1
         while i <= #path do
-            current = current.children[path[i]]
+            local _, index = unpack(path[i])
+            current = current.children[index]
             i = i + 1
         end
         return current

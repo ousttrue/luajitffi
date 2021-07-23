@@ -10,6 +10,7 @@ local CXCursorKind = mod.enums.CXCursorKind
 ---@class Parser
 ---@field root Node
 ---@field nodemap table<integer, Node>
+---@field node_count integer
 ---@field reverse_reference_map table<integer, Node[]>
 ---@field dup_map Table<string, boolean>
 local Parser = {
@@ -101,6 +102,10 @@ local Parser = {
 
         node = Node.new(cursor, c, parent_cursor)
         self.nodemap[c] = node
+        self.node_count = self.node_count + 1
+        if self.node_count % 10000 == 0 then
+            print(self.node_count)
+        end
 
         if cursor.kind == CXCursorKind.CXCursor_TranslationUnit then
         elseif cursor.kind == CXCursorKind.CXCursor_MacroDefinition then
@@ -308,6 +313,7 @@ Parser.new = function()
         ffi = ffi,
         clang = clang,
         nodemap = {},
+        node_count = 0,
         reverse_reference_map = {},
         dup_map = {},
     })
