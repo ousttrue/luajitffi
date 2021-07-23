@@ -52,7 +52,6 @@ local Parser = {
         for i, cflag in ipairs(cflags) do
             table.insert(arguments, cflag)
         end
-        table.insert(arguments, string.format("-I%s", path))
 
         local c_str = ffi.typeof(string.format("const char *[%d]", #arguments))
         local array = c_str()
@@ -128,6 +127,7 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_CallExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_UnexposedExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_CStyleCastExpr then
+        elseif cursor.kind == CXCursorKind.CXCursor_FirstInvalid then
         elseif cursor.kind == CXCursorKind.CXCursor_UnaryOperator then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_BinaryOperator then

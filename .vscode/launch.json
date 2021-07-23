@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "clangffi",
+            "name": "generate libclang",
             "type": "lua-local",
             "request": "launch",
             "program": {
@@ -34,6 +34,26 @@
                 "lua": "${workspaceFolder}/lua/bin/lua.exe",
                 "file": "${workspaceFolder}/test_generated.lua"
             },
+            "cwd": "${workspaceFolder}",
+            "env": {
+                // path to libclang.dll
+                "PATH": "${env:PATH};C:\\Program Files\\LLVM\\bin",
+            },
+        },
+        {
+            "name": "generate win32api",
+            "type": "lua-local",
+            "request": "launch",
+            "program": {
+                "lua": "${workspaceFolder}/lua/bin/lua.exe",
+                "file": "${workspaceFolder}/main.lua"
+            },
+            "args": [
+                // Export
+                "-Eshlwapi.h,Shlwapi.dll",
+                // OUt
+                "-O./win32",
+            ],
             "cwd": "${workspaceFolder}",
             "env": {
                 // path to libclang.dll
