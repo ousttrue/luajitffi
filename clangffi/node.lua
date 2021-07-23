@@ -44,7 +44,7 @@ local Node = {
 
     ---@param self Node
     __tostring = function(self)
-        return string.format("%s: %s", self.node_type, self.spelling)
+        return string.format("%d: %s %s", self.hash, self.spelling, self.node_type)
     end,
 
     ---@param self Node
