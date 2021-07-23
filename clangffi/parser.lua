@@ -70,15 +70,10 @@ local Parser = {
             unsaved.Length = #unsaved_content
         end
 
-        local tu = clang.clang_parseTranslationUnit(
-            index,
-            path,
-            array,
-            #arguments,
-            unsaved,
-            n_unsaved,
-            mod.enums.CXTranslationUnit_Flags.CXTranslationUnit_DetailedPreprocessingRecord
-        )
+        local flags = mod.enums.CXTranslationUnit_Flags.CXTranslationUnit_DetailedPreprocessingRecord
+            + mod.enums.CXTranslationUnit_Flags.CXTranslationUnit_SkipFunctionBodies
+
+        local tu = clang.clang_parseTranslationUnit(index, path, array, #arguments, unsaved, n_unsaved, flags)
 
         return tu
     end,
@@ -112,6 +107,7 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_MacroExpansion then
         elseif cursor.kind == CXCursorKind.CXCursor_UnexposedDecl then
         elseif cursor.kind == CXCursorKind.CXCursor_ClassTemplate then
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXBaseSpecifier then
         elseif cursor.kind == CXCursorKind.CXCursor_TemplateTypeParameter then
         elseif cursor.kind == CXCursorKind.CXCursor_CXXTypeidExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_ClassTemplatePartialSpecialization then
@@ -128,13 +124,28 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_UnexposedExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_CStyleCastExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_FirstInvalid then
+        elseif cursor.kind == CXCursorKind.CXCursor_WarnUnusedResultAttr then
+        elseif cursor.kind == CXCursorKind.CXCursor_AlignedAttr then
+        elseif cursor.kind == CXCursorKind.CXCursor_Namespace then
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXNullPtrLiteralExpr then
+        elseif cursor.kind == CXCursorKind.CXCursor_UsingDeclaration then
+        elseif cursor.kind == CXCursorKind.CXCursor_NamespaceRef then
+        elseif cursor.kind == CXCursorKind.CXCursor_OverloadedDeclRef then
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXAccessSpecifier then
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXMethod then
+        elseif cursor.kind == CXCursorKind.CXCursor_ClassDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_ConditionalOperator then
+            node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_UnaryOperator then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_BinaryOperator then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_ParenExpr then
             node.tokens = clang_util.get_tokens(cursor)
+        elseif cursor.kind == CXCursorKind.CXCursor_UnaryExpr then
+            node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_CXXBoolLiteralExpr then
+            node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_DLLImport then
             --skip
         elseif cursor.kind == CXCursorKind.CXCursor_StringLiteral then
@@ -185,6 +196,8 @@ local Parser = {
             node.type = t
         elseif cursor.kind == CXCursorKind.CXCursor_StructDecl then
             node.node_type = "struct"
+        elseif cursor.kind == CXCursorKind.CXCursor_UnionDecl then
+            node.node_type = "union"
         else
             assert(false)
         end

@@ -56,6 +56,10 @@ M.Float = utils.new(M.Primitive, {
 M.Double = utils.new(M.Primitive, {
     type = "double",
 })
+-- 16byte
+M.LongDouble = utils.new(M.Primitive, {
+    type = "long double",
+})
 
 ---
 --- Poiner, Reference, Array
@@ -262,18 +266,23 @@ local primitives = {
 
     [CXTypeKind.CXType_Bool] = M.Bool,
 
+    [CXTypeKind.CXType_UChar] = M.UInt8,
     [CXTypeKind.CXType_WChar] = M.UInt16, -- Windows
     [CXTypeKind.CXType_UShort] = M.UInt16,
     [CXTypeKind.CXType_UInt] = M.UInt32,
     [CXTypeKind.CXType_ULong] = M.UInt32,
     [CXTypeKind.CXType_ULongLong] = M.UInt64,
 
+    [CXTypeKind.CXType_SChar] = M.Int8,
     [CXTypeKind.CXType_Char_S] = M.Int8,
+    [CXTypeKind.CXType_Short] = M.Int16,
     [CXTypeKind.CXType_Int] = M.Int32,
     [CXTypeKind.CXType_Long] = M.Int32,
     [CXTypeKind.CXType_LongLong] = M.Int64,
 
+    [CXTypeKind.CXType_Float] = M.Float,
     [CXTypeKind.CXType_Double] = M.Double,
+    [CXTypeKind.CXType_LongDouble] = M.LongDouble,
 }
 
 ---@param cxType any
@@ -308,9 +317,9 @@ M.type_from_cx_type = function(cxType, cursor)
             element = elementType,
         }),
             is_const
-    elseif cxType.kind == CXTypeKind.CXType_DependentSizedArray then
+    elseif cxType.kind == CXTypeKind.CXType_DependentSizedArray or cxType.kind == CXTypeKind.CXType_IncompleteArray then
         -- -- param array
-        local array_size = clang.clang_getArraySize(cxType)
+        -- local array_size = clang.clang_getArraySize(cxType)
         local elementCxType = clang.clang_getArrayElementType(cxType)
         local elementType, _is_const = M.type_from_cx_type(elementCxType, cursor)
         return utils.new(M.Pointer, {
@@ -331,6 +340,8 @@ M.type_from_cx_type = function(cxType, cursor)
         return utils.new(M.Typedef, {})
     elseif cxType.kind == CXTypeKind.CXType_Elaborated then
         return "elaborated", is_const
+    elseif cxType.kind == CXTypeKind.CXType_Record then
+        return "record", is_const
     else
         assert(false)
     end
