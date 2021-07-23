@@ -11,6 +11,7 @@ local CXCursorKind = mod.enums.CXCursorKind
 ---@field root Node
 ---@field nodemap table<integer, Node>
 ---@field reverse_reference_map table<integer, Node[]>
+---@field dup_map Table<string, boolean>
 local Parser = {
     ---@param self Parser
     ---@param exports Export[]
@@ -220,6 +221,12 @@ local Parser = {
             parent.children = {}
         end
 
+        local key = string.format("%d_%d", parent.hash, node.hash)
+        if not self.dup_map[key] then
+            self.dup_map[key] = true
+            table.insert(parent.children, node)
+        end
+
         -- this is slow down. later call Node:remove_duplicated
         -- for i, sibling in ipairs(parent.children) do
         --     if sibling.hash == node.hash then
@@ -227,7 +234,6 @@ local Parser = {
         --         return
         --     end
         -- end
-        table.insert(parent.children, node)
     end,
 
     ---@param self Parser
@@ -303,6 +309,7 @@ Parser.new = function()
         clang = clang,
         nodemap = {},
         reverse_reference_map = {},
+        dup_map = {},
     })
 end
 

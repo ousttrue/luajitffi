@@ -100,7 +100,8 @@ lua main.lua
     local cmd = CommandLine.parse(args)
     local parser = Parser.new()
     parser:parse(cmd.EXPORTS, cmd.CFLAGS)
-    parser.root:remove_duplicated()
+    -- print("remove_duplicated...")
+    -- parser.root:remove_duplicated()
 
     -- resolve typedef
     if false then
@@ -165,7 +166,9 @@ lua main.lua
 
         if name == "Index" then
             w:write("// http://wiki.luajit.org/FFI-Callbacks-with-pass-by-value-structs\n")
-            w:write("typedef enum CXChildVisitResult (*CXCursorVisitorP)(CXCursor *cursor, CXCursor *parent, CXClientData client_data);\n")
+            w:write(
+                "typedef enum CXChildVisitResult (*CXCursorVisitorP)(CXCursor *cursor, CXCursor *parent, CXClientData client_data);\n"
+            )
         end
 
         w:write("]]\n")
