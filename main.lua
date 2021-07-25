@@ -57,6 +57,7 @@ CommandLine.parse = function(args)
         elseif arg:find("-E") == 1 then
             local value = arg:sub(3)
             local export, dll = unpack(utils.split(value, ","))
+            export = utils.get_fullpath(export)
             table.insert(instance.EXPORTS, Export.new(export, dll))
         elseif arg:find("-O") == 1 then
             local value = arg:sub(3)

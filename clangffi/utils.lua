@@ -1,6 +1,7 @@
 local ffi = require("ffi")
 ffi.cdef([[
 typedef unsigned int DWORD;
+typedef char *LPSTR;
 typedef const char *LPCSTR;
 typedef int BOOL;
 typedef struct _SECURITY_ATTRIBUTES {
@@ -13,6 +14,12 @@ DWORD GetFileAttributesA(LPCSTR lpFileName);
 BOOL CreateDirectoryA(
   LPCSTR                lpPathName,
   LPSECURITY_ATTRIBUTES lpSecurityAttributes
+);
+DWORD GetFullPathNameA(
+  LPCSTR lpFileName,
+  DWORD  nBufferLength,
+  LPSTR  lpBuffer,
+  LPSTR  *lpFilePart
 );
 ]])
 local kernel32 = ffi.load("kernel32")
@@ -107,6 +114,14 @@ M.get_indent = function(indent, count)
         s = s .. indent
     end
     return s
+end
+
+M.get_fullpath = function(path)
+    local buffer = ffi.new("char[256]")
+    if kernel32.GetFullPathNameA(path, ffi.sizeof(buffer), buffer, nil) > 0 then
+        local full = ffi.string(buffer)
+        return full
+    end
 end
 
 M.is_exists = function(path)
