@@ -118,32 +118,34 @@ M.libs.%s = {
                     end) > 0
                 then
                     for i, f in ipairs(export_header.functions) do
-                        if FUNCTION == "wrap" then
-                            for j, p in ipairs(f.params) do
-                                w:write(string.format("    ---@param %s %s\n", p.name, emmy.get_typename(p.type)))
+                        if f.dll_export then
+                            if FUNCTION == "wrap" then
+                                for j, p in ipairs(f.params) do
+                                    w:write(string.format("    ---@param %s %s\n", p.name, emmy.get_typename(p.type)))
+                                end
+                                w:write(string.format("    ---@return %s\n", emmy.get_typename(f.result_type)))
+                                local params = table.concat(
+                                    utils.imap(f.params, function(i, p)
+                                        return get_name(i, p.name)
+                                    end),
+                                    ", "
+                                )
+                                w:write(string.format("    %s = function(%s)\n", f.name, params))
+                                w:write(string.format("        return %s.%s(%s)\n", lib_name, f.name, params))
+                                w:write("    end,\n")
+                            else
+                                local params = table.concat(
+                                    utils.imap(f.params, function(i, p)
+                                        local s = string.format("%s:%s", get_name(i, p.name), emmy.get_typename(p.type))
+                                        return s
+                                    end),
+                                    ", "
+                                )
+                                w:write(
+                                    string.format("    ---@type fun(%s):%s\n", params, emmy.get_typename(f.result_type))
+                                )
+                                w:write(string.format("    %s = %s.%s,\n", f.name, lib_name, f.name))
                             end
-                            w:write(string.format("    ---@return %s\n", emmy.get_typename(f.result_type)))
-                            local params = table.concat(
-                                utils.imap(f.params, function(i, p)
-                                    return get_name(i, p.name)
-                                end),
-                                ", "
-                            )
-                            w:write(string.format("    %s = function(%s)\n", f.name, params))
-                            w:write(string.format("        return %s.%s(%s)\n", lib_name, f.name, params))
-                            w:write("    end,\n")
-                        else
-                            local params = table.concat(
-                                utils.imap(f.params, function(i, p)
-                                    local s = string.format("%s:%s", get_name(i, p.name), emmy.get_typename(p.type))
-                                    return s
-                                end),
-                                ", "
-                            )
-                            w:write(
-                                string.format("    ---@type fun(%s):%s\n", params, emmy.get_typename(f.result_type))
-                            )
-                            w:write(string.format("    %s = %s.%s,\n", f.name, lib_name, f.name))
                         end
                     end
                 end

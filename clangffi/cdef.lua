@@ -119,5 +119,8 @@ types.Function.cdef = function(self)
         s = s .. "\n"
     end
     s = s .. ")"
+    if self.mangling and self.name ~= maingling then
+        s = s .. string.format(' asm("%s")', self.mangling)
+    end
     return s
 end

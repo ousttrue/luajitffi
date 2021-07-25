@@ -12,6 +12,13 @@ M.get_spelling_from_cursor = function(cursor)
     return value
 end
 
+M.get_mangling_from_cursor = function(cursor)
+    local cxString = clang.clang_Cursor_getMangling(cursor)
+    local value = ffi.string(clang.clang_getCString(cxString))
+    clang.clang_disposeString(cxString)
+    return value
+end
+
 M.get_spelling_from_file = function(file)
     if file == nil then
         return

@@ -142,6 +142,8 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_Constructor then
         elseif cursor.kind == CXCursorKind.CXCursor_Destructor then
         elseif cursor.kind == CXCursorKind.CXCursor_ConversionFunction then
+        elseif cursor.kind == CXCursorKind.CXCursor_DLLImport then
+        elseif cursor.kind == CXCursorKind.CXCursor_DLLExport then
         elseif cursor.kind == CXCursorKind.CXCursor_ConditionalOperator then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_UnaryOperator then
@@ -154,8 +156,6 @@ local Parser = {
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_CXXBoolLiteralExpr then
             node.tokens = clang_util.get_tokens(cursor)
-        elseif cursor.kind == CXCursorKind.CXCursor_DLLImport then
-            --skip
         elseif cursor.kind == CXCursorKind.CXCursor_StringLiteral then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_IntegerLiteral then
@@ -168,6 +168,7 @@ local Parser = {
             local t, is_const = types.type_from_cx_type(cxType, cursor)
             node.type = t
             node.is_const = is_const
+            node.mangling = clang_util.get_mangling_from_cursor(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_ParmDecl then
             node.node_type = "param"
             local cxType = clang.clang_getCursorType(cursor)

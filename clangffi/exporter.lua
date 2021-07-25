@@ -80,6 +80,7 @@ local Exporter = {
         local t = utils.new(types.Function, {
             dll_export = false,
             name = node.spelling,
+            mangling = node.mangling,
             location = node.location,
             params = {},
             result_type = node.type,
@@ -90,7 +91,10 @@ local Exporter = {
             if #stack == 0 then
                 -- skip self
             elseif #stack == 1 then
-                if x.cursor_kind == CXCursorKind.CXCursor_DLLImport then
+                if
+                    x.cursor_kind == CXCursorKind.CXCursor_DLLImport or x.cursor_kind
+                        == CXCursorKind.CXCursor_DLLExport
+                then
                     t.dll_export = true
                 elseif x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
                     local ref_node = self.nodemap[x.ref_hash]
