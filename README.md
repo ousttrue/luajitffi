@@ -11,11 +11,9 @@ luajit FFI generator using libclang
 ## Setup
 
 ```
-> hererocks.exe -j 2.1.0-beta3 -r latest lua
-> . ./lua/bin/activate.ps1
-> luarocks install luafilesystem
+> cd LuaJIT/src
+> cmd /C "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat" "&" "msvcbuild.bat"
 ```
-
 ## Usage
 
 * require PATH environment variable to `libclang.dll`
