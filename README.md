@@ -3,7 +3,7 @@ luajit FFI generator using libclang
 
 ## ToDo
 
-* [ ] lfs alternative and luarocks to luajit
+* [x] lfs alternative and luarocks to luajit
 * [ ] fix set_type
 * [ ] imgui(c++ mangle)
 * [ ] automation [FFI Callbacks with pass by value structs](http://wiki.luajit.org/FFI-Callbacks-with-pass-by-value-structs)

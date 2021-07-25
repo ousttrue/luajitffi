@@ -2,7 +2,6 @@ local utils = require("clangffi.utils")
 local Parser = require("clangffi.parser")
 local Exporter = require("clangffi.exporter")
 local Interface = require("clangffi.interface")
-local lfs = require("lfs")
 
 ---@class Export
 ---@field header string
@@ -69,23 +68,6 @@ CommandLine.parse = function(args)
     return utils.new(CommandLine, instance)
 end
 
-local function is_exists(path)
-    if lfs.attributes(path) then
-        return true
-    end
-end
-
-local function mkdirp(dir)
-    local parent, basename = utils.split_basename(dir)
-    if parent and parent ~= "." then
-        if not is_exists(parent) then
-            mkdirp(parent)
-        end
-    end
-    print(string.format("mkdir %s", dir))
-    lfs.mkdir(dir)
-end
-
 ---@param args string[]
 local function main(args)
     local usage = [[usage:
@@ -137,8 +119,8 @@ lua main.lua
     -- generate
     print("generate...")
     local cdef_out_dir = cmd.OUT_DIR .. "/cdef"
-    if not lfs.attributes(cdef_out_dir) then
-        mkdirp(cdef_out_dir)
+    if utils.is_exists(cdef_out_dir) then
+        utils.mkdirp(cdef_out_dir)
     end
 
     require("clangffi.cdef")

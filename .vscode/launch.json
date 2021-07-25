@@ -9,7 +9,7 @@
             "type": "lua-local",
             "request": "launch",
             "program": {
-                "lua": "${workspaceFolder}/lua/bin/lua.exe",
+                "lua": "${workspaceFolder}/LuaJIT/src/luajit.exe",
                 "file": "${workspaceFolder}/main.lua"
             },
             "args": [
@@ -31,7 +31,7 @@
             "type": "lua-local",
             "request": "launch",
             "program": {
-                "lua": "${workspaceFolder}/lua/bin/lua.exe",
+                "lua": "${workspaceFolder}/LuaJIT/src/luajit.exe",
                 "file": "${workspaceFolder}/test_generated.lua"
             },
             "cwd": "${workspaceFolder}",
@@ -45,7 +45,7 @@
             "type": "lua-local",
             "request": "launch",
             "program": {
-                "lua": "${workspaceFolder}/lua/bin/lua.exe",
+                "lua": "${workspaceFolder}/LuaJIT/src/luajit.exe",
                 "file": "${workspaceFolder}/main.lua"
             },
             "args": [

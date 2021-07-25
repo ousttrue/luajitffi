@@ -10,18 +10,11 @@ local M = {
 
 -- cdef
 require('clang.cdef.corecrt')
-require('clang.cdef.CXString')
 require('clang.cdef.vcruntime')
-require('clang.cdef.CXErrorCode')
 require('clang.cdef.Index')
+require('clang.cdef.CXErrorCode')
+require('clang.cdef.CXString')
 M.enums = {
-    CXErrorCode = {
-        CXError_Success = C.CXError_Success,
-        CXError_Failure = C.CXError_Failure,
-        CXError_Crashed = C.CXError_Crashed,
-        CXError_InvalidArguments = C.CXError_InvalidArguments,
-        CXError_ASTReadError = C.CXError_ASTReadError,
-    },
     CXAvailabilityKind = {
         CXAvailability_Available = C.CXAvailability_Available,
         CXAvailability_Deprecated = C.CXAvailability_Deprecated,
@@ -701,11 +694,16 @@ M.enums = {
         CXVisit_Break = C.CXVisit_Break,
         CXVisit_Continue = C.CXVisit_Continue,
     },
+    CXErrorCode = {
+        CXError_Success = C.CXError_Success,
+        CXError_Failure = C.CXError_Failure,
+        CXError_Crashed = C.CXError_Crashed,
+        CXError_InvalidArguments = C.CXError_InvalidArguments,
+        CXError_ASTReadError = C.CXError_ASTReadError,
+    },
 }
 ---@class __time64_t
 ---@class time_t
----@class CXString
----@class CXStringSet
 ---@class size_t
 ---@class CXIndex
 ---@class CXFile
@@ -773,6 +771,8 @@ M.enums = {
 ---@class CXIdxEntityRefInfo
 ---@class IndexerCallbacks
 ---@class CXFieldVisitor
+---@class CXString
+---@class CXStringSet
 -----------------------------------------------------------------------------
 -- libclang.dll
 -----------------------------------------------------------------------------
@@ -780,12 +780,6 @@ M.enums = {
 local clang = ffi.load('libclang')
 M.cache.clang = clang
 M.libs.clang = {
-    ---@type fun(string:CXString):string
-    clang_getCString = clang.clang_getCString,
-    ---@type fun(string:CXString):nil
-    clang_disposeString = clang.clang_disposeString,
-    ---@type fun(set:any):nil
-    clang_disposeStringSet = clang.clang_disposeStringSet,
     ---@type fun(excludeDeclarationsFromPCH:integer, displayDiagnostics:integer):CXIndex
     clang_createIndex = clang.clang_createIndex,
     ---@type fun(index:CXIndex):nil
@@ -1420,5 +1414,11 @@ M.libs.clang = {
     clang_indexLoc_getCXSourceLocation = clang.clang_indexLoc_getCXSourceLocation,
     ---@type fun(T:CXType, visitor:CXFieldVisitor, client_data:CXClientData):integer
     clang_Type_visitFields = clang.clang_Type_visitFields,
+    ---@type fun(string:CXString):string
+    clang_getCString = clang.clang_getCString,
+    ---@type fun(string:CXString):nil
+    clang_disposeString = clang.clang_disposeString,
+    ---@type fun(set:any):nil
+    clang_disposeStringSet = clang.clang_disposeStringSet,
 }
 return M

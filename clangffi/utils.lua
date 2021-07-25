@@ -1,3 +1,22 @@
+local ffi = require("ffi")
+ffi.cdef[[
+typedef unsigned int DWORD;
+typedef const char *LPCSTR;
+typedef int BOOL;
+typedef struct _SECURITY_ATTRIBUTES {
+    DWORD  nLength;
+    void* lpSecurityDescriptor;
+    BOOL   bInheritHandle;
+} SECURITY_ATTRIBUTES;
+typedef const SECURITY_ATTRIBUTES* LPSECURITY_ATTRIBUTES;
+DWORD GetFileAttributesA(LPCSTR lpFileName);    
+BOOL CreateDirectoryA(
+  LPCSTR                lpPathName,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes
+);
+]]
+local kernel32 = ffi.load("kernel32")
+
 local M = {}
 
 ---@param str string
@@ -84,6 +103,23 @@ M.get_indent = function(indent, count)
         s = s .. indent
     end
     return s
+end
+
+M.is_exists = function(path)
+    if kernel32.GetFileAttributesA(path) ~= 0xffffffff then
+        return true
+    end
+end
+
+M.mkdirp = function(dir)
+    local parent, basename = M.split_basename(dir)
+    if parent and parent ~= "." then
+        if not M.is_exists(parent) then
+            M.mkdirp(parent)
+        end
+    end
+    print(string.format("mkdir %s", dir))
+    kernel32.CreateDirectoryA(dir, nil)
 end
 
 return M
