@@ -150,9 +150,9 @@ M.libs.%s = {
                     end
                 end
             end
+            w:write("}\n")
         end
 
-        w:write("}\n")
         w:write("return M\n")
         w:close()
     end,
