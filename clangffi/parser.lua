@@ -139,6 +139,9 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_CXXAccessSpecifier then
         elseif cursor.kind == CXCursorKind.CXCursor_CXXMethod then
         elseif cursor.kind == CXCursorKind.CXCursor_ClassDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_Constructor then
+        elseif cursor.kind == CXCursorKind.CXCursor_Destructor then
+        elseif cursor.kind == CXCursorKind.CXCursor_ConversionFunction then
         elseif cursor.kind == CXCursorKind.CXCursor_ConditionalOperator then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_UnaryOperator then
@@ -156,6 +159,8 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_StringLiteral then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_IntegerLiteral then
+            node.tokens = clang_util.get_tokens(cursor)
+        elseif cursor.kind == CXCursorKind.CXCursor_FloatingLiteral then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_FunctionDecl then
             node.node_type = "function"
@@ -204,7 +209,7 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_UnionDecl then
             node.node_type = "union"
         else
-            assert(false)
+            assert(false, string.format("unknown kind: %q", cursor.kind))
         end
 
         return node

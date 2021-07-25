@@ -52,7 +52,8 @@ local function get_typename(t, param_name)
             return string.format("%s%s*%s", is_const, get_typename(t.pointee), name)
         end
     elseif mt == types.Array then
-        return string.format("%s%s[%d]", get_typename(t.element), name, t.size)
+        -- return string.format("%s%s[%d]", get_typename(t.element), name, t.size)
+        return "any"
     elseif mt == types.Typedef then
         if not t.name then
             return "XXX no name XXX"
@@ -73,6 +74,8 @@ local function get_typename(t, param_name)
         return t.name .. name
     elseif mt == types.FunctionProto then
         assert(false)
+    elseif mt == types.Ref then
+        return "Ref shoudl resolved"
     else
         return "XXX unknown type XXX"
     end

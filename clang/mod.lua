@@ -11,9 +11,9 @@ local M = {
 -- cdef
 require('clang.cdef.corecrt')
 require('clang.cdef.vcruntime')
+require('clang.cdef.CXString')
 require('clang.cdef.Index')
 require('clang.cdef.CXErrorCode')
-require('clang.cdef.CXString')
 M.enums = {
     CXAvailabilityKind = {
         CXAvailability_Available = C.CXAvailability_Available,

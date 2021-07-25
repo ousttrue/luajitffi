@@ -96,30 +96,32 @@ lua main.lua
     for _, node in parser.root:traverse() do
         if not used[node] then
             used[node] = true
-            if count % 10000 == 0 then
-                print(count)
-            end
             count = count + 1
             if node.location then
                 for i, export in ipairs(cmd.EXPORTS) do
                     if export.header == node.location.path then
                         -- only in export header
                         if node.node_type == "function" then
-                            exporter:export(node)
+                            if node.spelling:find("operator") == 1 then
+                                -- skip
+                            else
+                                exporter:push(node)
+                            end
                         elseif node.node_type == "enum" then
-                            exporter:export(node)
+                            exporter:push(node)
                         end
                     end
                 end
             end
         end
     end
+    exporter:execute()
     print(count)
 
     -- generate
     print("generate...")
     local cdef_out_dir = cmd.OUT_DIR .. "/cdef"
-    if utils.is_exists(cdef_out_dir) then
+    if not utils.is_exists(cdef_out_dir) then
         utils.mkdirp(cdef_out_dir)
     end
 
@@ -136,9 +138,13 @@ lua main.lua
         w:write("ffi.cdef[[\n")
 
         for i, t in ipairs(export_header.types) do
-            local text = t:cdef()
-            w:write(text)
-            w:write(";\n")
+            if t.name == "ImFontAtlas" or t.name == "ImFont" then
+                -- skip C++ type
+            else
+                local text = t:cdef()
+                w:write(text)
+                w:write(";\n")
+            end
         end
 
         for i, f in ipairs(export_header.functions) do

@@ -14,6 +14,13 @@ local ExportHeader = {
     __tostring = function(self)
         return string.format("%s (%d funcs)(%d types)", self.header, #self.functions, #self.types)
     end,
+
+    ---@param self ExportHeader
+    sort = function(self)
+        table.sort(self.types, function(a, b)
+            return a.location.line < b.location.line
+        end)
+    end,
 }
 
 ---@param header string
@@ -26,9 +33,14 @@ ExportHeader.new = function(header)
     })
 end
 
+---@class RefSrcDst
+---@field Src any
+---@field Dst Node
+
 ---@class Exporter
 ---@field nodemap Table<integer, Node>
 ---@field headers Table<string, ExportHeader>
+---@field export_list RefSrcDst[]
 ---@field used Table<Node, boolean>
 local Exporter = {
 
@@ -45,6 +57,22 @@ local Exporter = {
     end,
 
     ---@param self Exporter
+    ---@param dst Node
+    ---@param set_type fun(t:any, node:Node):nil
+    ---@param t any
+    ---@return Ref
+    push_ref = function(self, dst, set_type, t)
+        local ref = utils.new(types.Ref, {
+            node = dst,
+            set_type = function(node)
+                set_type(t, node)
+            end,
+        })
+        table.insert(self.export_list, ref)
+        return ref
+    end,
+
+    ---@param self Exporter
     ---@param node Node
     ---@return Function
     export_function = function(self, node)
@@ -52,6 +80,7 @@ local Exporter = {
         local t = utils.new(types.Function, {
             dll_export = false,
             name = node.spelling,
+            location = node.location,
             params = {},
             result_type = node.type,
             result_is_const = node.is_const,
@@ -67,7 +96,7 @@ local Exporter = {
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     -- return
-                    t:set_result_type(self:export(ref_node))
+                    self:push_ref(ref_node, t.set_result_type, t)
                 elseif x.cursor_kind == CXCursorKind.CXCursor_ParmDecl then
                     local p = utils.new(types.Param, {
                         name = x.spelling,
@@ -88,14 +117,10 @@ local Exporter = {
                 end
             elseif #stack == 2 then
                 if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
-                    -- if parent.node_type == "param" then
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    t.params[#t.params]:set_type(self:export(ref_node))
-                    -- else
-                    --     -- assert(false)
-                    -- end
+                    self:push_ref(ref_node, t.params[#t.params].set_type, t.params[#t.params])
                 else
                     -- other descendant
                 end
@@ -122,7 +147,7 @@ local Exporter = {
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     -- return
-                    t:set_result_type(self:export(ref_node))
+                    self:push_ref(ref_node, t.set_result_type, t)
                 elseif x.cursor_kind == CXCursorKind.CXCursor_ParmDecl then
                     local p = utils.new(types.Param, {
                         name = x.spelling,
@@ -139,7 +164,7 @@ local Exporter = {
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    t.params[#t.params]:set_type(self:export(ref_node))
+                    self:push_ref(ref_node, t.params[#t.params].set_type, t.params[#t.params])
                     -- else
                     --     -- assert(false)
                     -- end
@@ -160,6 +185,7 @@ local Exporter = {
         local export_header = self:get_or_create_header(node.location.path)
         local t = utils.new(types.Enum, {
             name = node.spelling,
+            location = node.location,
             values = {},
         })
 
@@ -189,8 +215,9 @@ local Exporter = {
                     t.values[#t.values].value = table.concat(x.tokens, "")
                 elseif x.cursor_kind == CXCursorKind.CXCursor_ParenExpr then
                     t.values[#t.values].value = table.concat(x.tokens, "")
+                elseif x.cursor_kind == CXCursorKind.CXCursor_UnexposedExpr then
                 else
-                    assert(false)
+                    assert(false, string.format("unknown CXCurosrKind: %s", x.cursor_kind))
                 end
             end
         end
@@ -210,6 +237,7 @@ local Exporter = {
         local export_header = self:get_or_create_header(node.location.path)
         local t = utils.new(types.Typedef, {
             name = node.spelling,
+            location = node.location,
             type = node.type,
         })
 
@@ -223,7 +251,7 @@ local Exporter = {
                     if x.node_type == "typeref" then
                         local ref_node = self.nodemap[x.ref_hash]
                         assert(ref_node)
-                        t:set_type(self:export(ref_node))
+                        self:push_ref(ref_node, t.set_type, t)
                     elseif x.node_type == "struct" or x.node_type == "union" then
                         -- tyepdef struct {} hoge;
                         t:set_type(self:export(x))
@@ -255,6 +283,7 @@ local Exporter = {
         local export_header = self:get_or_create_header(node.location.path)
         local t = utils.new(types.Struct, {
             name = node.spelling,
+            location = node.location,
             fields = {},
         })
 
@@ -286,10 +315,17 @@ local Exporter = {
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
 
+                    local copy = utils.map(stack)
+                    table.remove(copy)
+                    local parent = node:from_path(copy)
+
                     if #t.fields == 0 then
                         -- base class ?
                     else
-                        t.fields[#t.fields]:set_type(self:export(ref_node))
+                        if parent.node_type == "field" then
+                            local f = t.fields[#t.fields]
+                            self:push_ref(ref_node, f.set_type, f)
+                        end
                     end
                     -- end
                 elseif x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
@@ -310,6 +346,10 @@ local Exporter = {
 
     ---@param self Exporter
     ---@param node Node
+    push = function(self, node)
+        table.insert(self.export_list, { node = node })
+    end,
+
     export = function(self, node)
         local found = self.used[node]
         if found then
@@ -327,6 +367,31 @@ local Exporter = {
         else
             assert(false)
         end
+        return node
+    end,
+
+    ---@param self Exporter
+    execute = function(self)
+        -- export list
+        while true do
+            if #self.export_list == 0 then
+                break
+            end
+
+            local export_list = self.export_list
+            self.export_list = {}
+            for i, ref in ipairs(export_list) do
+                local t = self:export(ref.node)
+                if ref.set_type then
+                    ref.set_type(t)
+                end
+            end
+        end
+
+        -- sort
+        for header, export_header in pairs(self.headers) do
+            export_header:sort()
+        end
     end,
 }
 
@@ -337,6 +402,7 @@ Exporter.new = function(nodemap)
         nodemap = nodemap,
         headers = {},
         used = {},
+        export_list = {},
     })
 end
 

@@ -1,5 +1,5 @@
 local ffi = require("ffi")
-ffi.cdef[[
+ffi.cdef([[
 typedef unsigned int DWORD;
 typedef const char *LPCSTR;
 typedef int BOOL;
@@ -14,7 +14,7 @@ BOOL CreateDirectoryA(
   LPCSTR                lpPathName,
   LPSECURITY_ATTRIBUTES lpSecurityAttributes
 );
-]]
+]])
 local kernel32 = ffi.load("kernel32")
 
 local M = {}
@@ -37,7 +37,11 @@ end
 M.map = function(t, f)
     local dst = {}
     for _, v in ipairs(t) do
-        table.insert(dst, f(v))
+        if f then
+            table.insert(dst, f(v))
+        else
+            table.insert(dst, v)
+        end
     end
     return dst
 end

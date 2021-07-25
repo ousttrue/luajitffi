@@ -252,6 +252,11 @@ M.Enum = {
     end,
 }
 
+---@class Ref
+---@field node Node
+---@field set_tpe fun(node:Node):nil
+M.Ref = {}
+
 ---@param t any
 ---@return boolean
 M.is_anonymous = function(t)
