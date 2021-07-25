@@ -4,10 +4,12 @@ luajit FFI generator using libclang
 ## ToDo
 
 * [x] lfs alternative and luarocks to luajit
-* [ ] fix set_type
-* [ ] imgui(c++ mangle)
+* [x] fix set_type
+* [x] imgui(c++ mangle)
 * [ ] automation [FFI Callbacks with pass by value structs](http://wiki.luajit.org/FFI-Callbacks-with-pass-by-value-structs)
-
+* [ ] automation nested type order
+* [ ] cdef require order
+* [ ] default argument
 ## Setup
 
 ```
