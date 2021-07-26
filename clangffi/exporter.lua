@@ -95,6 +95,7 @@ local Exporter = {
             params = {},
             result_type = node.type,
             result_is_const = node.is_const,
+            is_variadic = node.is_variadic,
         })
 
         for stack, x in node:traverse() do

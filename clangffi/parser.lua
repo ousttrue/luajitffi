@@ -169,6 +169,7 @@ local Parser = {
             node.type = t
             node.is_const = is_const
             node.mangling = clang_util.get_mangling_from_cursor(cursor)
+            node.is_variadic = clang.clang_Cursor_isVariadic(cursor) ~= 0
         elseif cursor.kind == CXCursorKind.CXCursor_ParmDecl then
             node.node_type = "param"
             local cxType = clang.clang_getCursorType(cursor)

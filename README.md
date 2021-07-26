@@ -13,7 +13,7 @@ luajit FFI generator using libclang
 * [x] function: default argument
 * [x] function: overload. same name has suffix
 * [ ] function: description from comment
-* [ ] function: ... va_list
+* [x] function: is variadic(...)
 
 ## Setup
 

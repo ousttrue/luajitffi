@@ -104,6 +104,9 @@ local function write_function(w, lib_name, f, suffix)
             end),
             ", "
         )
+        if f.is_variadic then
+            params = params .. ", ..."
+        end
         w:write(string.format("    ---@type fun(%s):%s\n", params, emmy.get_typename(f.result_type)))
         w:write(string.format("    %s = %s.%s,\n", name, lib_name, name))
     end

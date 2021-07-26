@@ -119,6 +119,9 @@ types.Function.cdef = function(self, suffix)
         end
         s = s .. "\n"
     end
+    if self.is_variadic then
+        s = s .. ", ...\n"
+    end
     s = s .. ")"
     if self.mangling and self.name ~= maingling then
         s = s .. string.format(' asm("%s")', self.mangling)
