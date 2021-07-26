@@ -11,11 +11,11 @@ local function get_name(i, name)
     return string.format("param%s", i)
 end
 
----@class Interface
+---@class ModGenerator
 ---@field libs Table<string, string[]>
-local Interface = {
+local ModGenerator = {
 
-    ---@param self Interface
+    ---@param self ModGenerator
     ---@param link string
     ---@param header string
     push = function(self, link, header)
@@ -27,7 +27,7 @@ local Interface = {
         table.insert(lib, header)
     end,
 
-    ---@param self Interface
+    ---@param self ModGenerator
     ---@param path string
     ---@param exporter Exporter
     generate = function(self, path, exporter)
@@ -170,11 +170,11 @@ M.libs.%s = {
     end,
 }
 
----@return Interface
-Interface.new = function()
-    return utils.new(Interface, {
+---@return ModGenerator
+ModGenerator.new = function()
+    return utils.new(ModGenerator, {
         libs = {},
     })
 end
 
-return Interface
+return ModGenerator

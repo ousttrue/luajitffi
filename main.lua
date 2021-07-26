@@ -1,7 +1,7 @@
 local utils = require("clangffi.utils")
 local Parser = require("clangffi.parser")
 local Exporter = require("clangffi.exporter")
-local Interface = require("clangffi.interface")
+local ModGenerator = require("clangffi.mod_generator")
 
 ---@class Export
 ---@field header string
@@ -169,13 +169,13 @@ lua main.lua
     end
 
     -- interface
-    local interface = Interface.new()
+    local generator = ModGenerator.new()
     for i, export in ipairs(cmd.EXPORTS) do
-        interface:push(export.link, export.header)
+        generator:push(export.link, export.header)
     end
     local path = string.format("%s/mod.lua", cmd.OUT_DIR)
     print(path)
-    interface:generate(path, exporter)
+    generator:generate(path, exporter)
 end
 
 main({ ... })
