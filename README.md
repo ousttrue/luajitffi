@@ -11,7 +11,7 @@ luajit FFI generator using libclang
 * [ ] struct: @field
 * [ ] cdef require order
 * [ ] function: default argument
-* [ ] function: overload
+* [x] function: overload. same name has suffix
 * [ ] function: description from comment
 
 ## Setup

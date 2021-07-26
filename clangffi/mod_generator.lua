@@ -11,6 +11,41 @@ local function get_name(i, name)
     return string.format("param%s", i)
 end
 
+local function write_function(w, lib_name, f, suffix)
+    local has_default = utils.iany(f.params, function(i, x)
+        if x.default_value then
+            return true
+        end
+    end)
+    local name = f.name .. suffix
+
+    if has_default then
+        for j, p in ipairs(f.params) do
+            w:write(string.format("    ---@param %s %s\n", get_name(i, p.name), emmy.get_typename(p.type)))
+        end
+        -- w:write(string.format("    ---@return %s\n", emmy.get_typename(f.result_type)))
+        local params = table.concat(
+            utils.imap(f.params, function(i, p)
+                return get_name(i, p.name)
+            end),
+            ", "
+        )
+        w:write(string.format("    %s = function(%s)\n", name, params))
+        w:write(string.format("        return %s.%s(%s)\n", lib_name, name, params))
+        w:write("    end,\n")
+    else
+        local params = table.concat(
+            utils.imap(f.params, function(i, p)
+                local s = string.format("%s:%s", get_name(i, p.name), emmy.get_typename(p.type))
+                return s
+            end),
+            ", "
+        )
+        w:write(string.format("    ---@type fun(%s):%s\n", params, emmy.get_typename(f.result_type)))
+        w:write(string.format("    %s = %s.%s,\n", name, lib_name, name))
+    end
+end
+
 ---@class ModGenerator
 ---@field libs Table<string, string[]>
 local ModGenerator = {
@@ -119,44 +154,13 @@ M.libs.%s = {
                 then
                     for i, f in ipairs(export_header.functions) do
                         if f.dll_export then
-                            if
-                                utils.iany(f.params, function(i, x)
-                                    if x.default_value then
-                                        return true
-                                    end
-                                end)
-                            then
-                                for j, p in ipairs(f.params) do
-                                    w:write(
-                                        string.format(
-                                            "    ---@param %s %s\n",
-                                            get_name(i, p.name),
-                                            emmy.get_typename(p.type)
-                                        )
-                                    )
+                            write_function(w, lib_name, f, "")
+                        end
+                        if f.same_name then
+                            for j, sn in ipairs(f.same_name) do
+                                if sn.dll_export then
+                                    write_function(w, lib_name, sn, string.format("__%d", j))
                                 end
-                                w:write(string.format("    ---@return %s\n", emmy.get_typename(f.result_type)))
-                                local params = table.concat(
-                                    utils.imap(f.params, function(i, p)
-                                        return get_name(i, p.name)
-                                    end),
-                                    ", "
-                                )
-                                w:write(string.format("    %s = function(%s)\n", f.name, params))
-                                w:write(string.format("        return %s.%s(%s)\n", lib_name, f.name, params))
-                                w:write("    end,\n")
-                            else
-                                local params = table.concat(
-                                    utils.imap(f.params, function(i, p)
-                                        local s = string.format("%s:%s", get_name(i, p.name), emmy.get_typename(p.type))
-                                        return s
-                                    end),
-                                    ", "
-                                )
-                                w:write(
-                                    string.format("    ---@type fun(%s):%s\n", params, emmy.get_typename(f.result_type))
-                                )
-                                w:write(string.format("    %s = %s.%s,\n", f.name, lib_name, f.name))
                             end
                         end
                     end

@@ -109,8 +109,9 @@ types.Enum.cdef = function(self)
 end
 
 ---@param self Function
-types.Function.cdef = function(self)
-    local s = string.format("%s %s(\n", get_typename(self.result_type, true), self.name)
+types.Function.cdef = function(self, suffix)
+    suffix = suffix or ""
+    local s = string.format("%s %s(\n", get_typename(self.result_type, true), self.name .. suffix)
     for i, p in pairs(self.params) do
         s = s .. string.format("    %s", get_typename(p.type, p.name))
         if i < #self.params then

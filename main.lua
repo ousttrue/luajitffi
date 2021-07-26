@@ -117,7 +117,7 @@ lua main.lua
         end
     end
     exporter:execute()
-    print(count)  
+    print(count)
 
     -- generate
     print("generate...")
@@ -153,6 +153,17 @@ lua main.lua
                 local text = f:cdef()
                 w:write(text)
                 w:write(";\n")
+            end
+
+            -- same name
+            if f.same_name then
+                for j, sn in ipairs(f.same_name) do
+                    if sn.dll_export then
+                        local text = sn:cdef(string.format("__%d", j))
+                        w:write(text)
+                        w:write(";\n")
+                    end
+                end
             end
         end
 

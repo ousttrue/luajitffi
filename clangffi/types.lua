@@ -73,6 +73,13 @@ M.Pointer = {
     __tostring = function(self)
         return string.format("%s*", self.pointee)
     end,
+
+    __eq = function(self, rhs)
+        if getmetatable(rhs) ~= M.Pointer then
+            return false
+        end
+        return self.pointee == rhs.pointee
+    end,
 }
 
 ---@class Array
@@ -122,6 +129,7 @@ M.Param = {
 ---@field params Param[]
 ---@field result_type any
 ---@field result_is_const boolean
+---@field same_name Function[]
 M.Function = {
     ---@param self Function
     ---@return string
