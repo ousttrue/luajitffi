@@ -82,15 +82,20 @@ local function get_typename(t, param_name)
 end
 
 local map = {
+    ["bool"] = "boolean",
     ["int"] = "integer",
     ["long long"] = "integer",
+    ["float"] = "number",
     ["double"] = "number",
     ["const char*"] = "string",
     ["void"] = "nil",
 }
 
 local symbl_map = {
+    ["do"] = true,
     ["end"] = true,
+    ["repeat"] = true,
+    ["until"] = true,
 }
 
 return {

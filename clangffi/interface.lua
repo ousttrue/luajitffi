@@ -113,15 +113,27 @@ M.libs.%s = {
 
             for header, export_header in pairs(exporter.headers) do
                 if
-                    #utils.filter(headers, function(x)
+                    #utils.ifilter(headers, function(i, x)
                         return x == header
                     end) > 0
                 then
                     for i, f in ipairs(export_header.functions) do
                         if f.dll_export then
-                            if FUNCTION == "wrap" then
+                            if
+                                utils.iany(f.params, function(i, x)
+                                    if x.default_value then
+                                        return true
+                                    end
+                                end)
+                            then
                                 for j, p in ipairs(f.params) do
-                                    w:write(string.format("    ---@param %s %s\n", p.name, emmy.get_typename(p.type)))
+                                    w:write(
+                                        string.format(
+                                            "    ---@param %s %s\n",
+                                            get_name(i, p.name),
+                                            emmy.get_typename(p.type)
+                                        )
+                                    )
                                 end
                                 w:write(string.format("    ---@return %s\n", emmy.get_typename(f.result_type)))
                                 local params = table.concat(

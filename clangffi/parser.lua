@@ -24,7 +24,7 @@ local Parser = {
             tu = self:get_tu(exports[1].header, "", cflags)
         else
             -- use unsaved_content
-            local mapped = utils.map(exports, function(v)
+            local mapped = utils.imap(exports, function(i, v)
                 return string.format('#include "%s"', v.header)
             end)
             local unsaved_content = table.concat(mapped, "\n")
@@ -175,6 +175,7 @@ local Parser = {
             local t, is_const = types.type_from_cx_type(cxType, cursor)
             node.type = t
             node.is_const = is_const
+            node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_FieldDecl then
             node.node_type = "field"
             local cxType = clang.clang_getCursorType(cursor)

@@ -130,7 +130,7 @@ M.Function = {
         if self.dll_export then
             prefix = "extern "
         end
-        local params = utils.map(self.params, function(p)
+        local params = utils.imap(self.params, function(i, p)
             -- assert(p.cursor_kind)
             return string.format("%s %s", p.type, p.name)
         end)

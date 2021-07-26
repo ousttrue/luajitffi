@@ -7,9 +7,13 @@ luajit FFI generator using libclang
 * [x] fix set_type
 * [x] imgui(c++ mangle)
 * [ ] automation [FFI Callbacks with pass by value structs](http://wiki.luajit.org/FFI-Callbacks-with-pass-by-value-structs)
-* [ ] automation nested type order
+* [ ] struct: automation nested type order
+* [ ] struct: @field
 * [ ] cdef require order
-* [ ] default argument
+* [ ] function: default argument
+* [ ] function: overload
+* [ ] function: description from comment
+
 ## Setup
 
 ```

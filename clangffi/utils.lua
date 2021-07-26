@@ -37,21 +37,21 @@ M.split = function(str, ts)
     return t
 end
 
----@generic S, T
----@param t S[]
----@param f fun(src:S):T
----@return T[]
-M.map = function(t, f)
-    local dst = {}
-    for _, v in ipairs(t) do
-        if f then
-            table.insert(dst, f(v))
-        else
-            table.insert(dst, v)
-        end
-    end
-    return dst
-end
+-- ---@generic S, T
+-- ---@param t S[]
+-- ---@param f fun(src:S):T
+-- ---@return T[]
+-- M.map = function(t, f)
+--     local dst = {}
+--     for k, v in ipairs(t) do
+--         if f then
+--             table.insert(dst, f(v))
+--         else
+--             table.insert(dst, v)
+--         end
+--     end
+--     return dst
+-- end
 
 ---@generic S, T
 ---@param t S[]
@@ -60,23 +60,36 @@ end
 M.imap = function(t, f)
     local dst = {}
     for i, v in ipairs(t) do
-        table.insert(dst, f(i, v))
+        if f then
+            table.insert(dst, f(i, v))
+        else
+            -- copy
+            table.insert(dst, v)
+        end
     end
     return dst
 end
 
 ---@generic S
 ---@param t S[]
----@param f fun(src:S):boolean
+---@param f fun(i:integer, src:S):boolean
 ---@return S[]
-M.filter = function(t, f)
+M.ifilter = function(t, f)
     local dst = {}
-    for _, v in ipairs(t) do
-        if f(v) then
+    for i, v in ipairs(t) do
+        if f(i, v) then
             table.insert(dst, v)
         end
     end
     return dst
+end
+
+M.iany = function(t, f)
+    for i, v in ipairs(t) do
+        if f(i, v) then
+            return true
+        end
+    end
 end
 
 ---@generic T

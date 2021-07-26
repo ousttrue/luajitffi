@@ -33,6 +33,16 @@ ExportHeader.new = function(header)
     })
 end
 
+---@param tokens string[]
+---@return string
+local function get_default_value(tokens)
+    for i, t in ipairs(tokens) do
+        if t == "=" then
+            return table.concat(tokens, "", i + 1)
+        end
+    end
+end
+
 ---@class RefSrcDst
 ---@field Src any
 ---@field Dst Node
@@ -92,8 +102,8 @@ local Exporter = {
                 -- skip self
             elseif #stack == 1 then
                 if
-                    x.cursor_kind == CXCursorKind.CXCursor_DLLImport or x.cursor_kind
-                        == CXCursorKind.CXCursor_DLLExport
+                    x.cursor_kind == CXCursorKind.CXCursor_DLLImport
+                    or x.cursor_kind == CXCursorKind.CXCursor_DLLExport
                 then
                     t.dll_export = true
                 elseif x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
@@ -107,6 +117,7 @@ local Exporter = {
                         type = x.type,
                         is_const = x.is_const,
                     })
+                    p.default_value = get_default_value(x.tokens)
                     table.insert(t.params, p)
 
                     if types.is_functionproto(x.type) then
@@ -319,7 +330,7 @@ local Exporter = {
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
 
-                    local copy = utils.map(stack)
+                    local copy = utils.imap(stack)
                     table.remove(copy)
                     local parent = node:from_path(copy)
 
