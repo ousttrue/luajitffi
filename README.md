@@ -10,7 +10,7 @@ luajit FFI generator using libclang
 * [ ] struct: automation nested type order
 * [ ] struct: @field
 * [ ] cdef require order
-* [ ] function: default argument
+* [x] function: default argument
 * [x] function: overload. same name has suffix
 * [ ] function: description from comment
 

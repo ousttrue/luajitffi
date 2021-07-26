@@ -11,6 +11,72 @@ local function get_name(i, name)
     return string.format("param%s", i)
 end
 
+---@param src string
+---@return string
+local function to_lua(src)
+    if src == "NULL" then
+        return "nil"
+    end
+    if src == "true" then
+        return "true"
+    end
+    if src == "false" then
+        return "false"
+    end
+    if src == "FLT_MAX" then
+        return "3.402823466e+38"
+    end
+    if src == "sizeof(float)" then
+        return 4
+    end
+
+    if src == "ImVec2(0,0)" or src == "ImVec2(0.0f,0.0f)" then
+        return "ffi.new('ImVec2')"
+    end
+    if src == "ImVec2(1,1)" then
+        return [[ffi.new('ImVec2')
+value.x = 1
+value.y = 1
+]]
+    end
+    if src == "ImVec2(-FLT_MIN,0)" then
+        return [[ffi.new('ImVec2')
+value.x = -1.175494351e-38
+]]
+    end
+    if src == "ImVec4(0,0,0,0)" then
+        return "ffi.new('ImVec4')"
+    end
+    if src == "ImVec4(1,1,1,1)" then
+        return [[ffi.new('ImVec4')
+value.x = 1
+value.y = 1
+value.z = 1
+value.w = 1
+]]
+    end
+
+    local m = src:match("^[+-]?(%d+)$")
+    if m then
+        return m
+    end
+
+    local m = src:match("^[+-]?(%d+%.%d+)f?$")
+    if m then
+        return m
+    end
+
+    if src:find('"') == 1 then
+        return src
+    end
+
+    return src
+end
+
+---@param w file*
+---@param lib_name string
+---@param f Function
+---@param suffix string
 local function write_function(w, lib_name, f, suffix)
     local has_default = utils.iany(f.params, function(i, x)
         if x.default_value then
@@ -31,6 +97,13 @@ local function write_function(w, lib_name, f, suffix)
             ", "
         )
         w:write(string.format("    %s = function(%s)\n", name, params))
+        for j, p in ipairs(f.params) do
+            if p.default_value and p.default_value ~= "NULL" then
+                local pname = get_name(j, p.name)
+                w:write(string.format("        %s = %s or %s\n", pname, pname, to_lua(p.default_value)))
+            end
+        end
+
         w:write(string.format("        return %s.%s(%s)\n", lib_name, name, params))
         w:write("    end,\n")
     else

@@ -101,6 +101,7 @@ M.Array = {
 ---@field name string
 ---@field type any
 ---@field is_const boolean
+---@field default_value string
 M.Param = {
     ---@param self Param
     ---@return string

@@ -216,6 +216,7 @@ local Exporter = {
                             value = x.value,
                         })
                     )
+                elseif x.cursor_kind == CXCursorKind.CXCursor_MacroDefinition then
                 else
                     assert(false)
                 end
