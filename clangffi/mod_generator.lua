@@ -31,29 +31,19 @@ local function to_lua(src)
     end
 
     if src == "ImVec2(0,0)" or src == "ImVec2(0.0f,0.0f)" then
-        return "ffi.new('ImVec2')"
+        return "ffi.new('struct ImVec2')"
     end
     if src == "ImVec2(1,1)" then
-        return [[ffi.new('ImVec2')
-value.x = 1
-value.y = 1
-]]
+        return "ffi.new('struct ImVec2', 1, 1)"
     end
     if src == "ImVec2(-FLT_MIN,0)" then
-        return [[ffi.new('ImVec2')
-value.x = -1.175494351e-38
-]]
+        return "ffi.new('struct ImVec2', -1.175494351e-38, 0)"
     end
     if src == "ImVec4(0,0,0,0)" then
-        return "ffi.new('ImVec4')"
+        return "ffi.new('struct ImVec4')"
     end
     if src == "ImVec4(1,1,1,1)" then
-        return [[ffi.new('ImVec4')
-value.x = 1
-value.y = 1
-value.z = 1
-value.w = 1
-]]
+        return "ffi.new('struct ImVec4', 1, 1, 1, 1)"
     end
 
     local m = src:match("^[+-]?(%d+)$")
