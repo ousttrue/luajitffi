@@ -406,6 +406,24 @@ local Exporter = {
         -- sort
         for header, export_header in pairs(self.headers) do
             export_header:sort()
+
+            -- resolve same name function
+            local functions = export_header.functions
+            export_header.functions = {}
+            local name_map = {}
+            for i, f in ipairs(functions) do
+                assert(f.name)
+                local found = name_map[f.name]
+                if found then
+                    if not found.same_name then
+                        found.same_name = {}
+                    end
+                    table.insert(found.same_name, f)
+                else
+                    name_map[f.name] = f
+                    table.insert(export_header.functions, f)
+                end
+            end
         end
     end,
 }

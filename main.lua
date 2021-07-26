@@ -117,7 +117,7 @@ lua main.lua
         end
     end
     exporter:execute()
-    print(count)
+    print(count)  
 
     -- generate
     print("generate...")
