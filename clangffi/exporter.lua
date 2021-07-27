@@ -327,27 +327,38 @@ local Exporter = {
                     -- assert(false)
                 end
             elseif #stack == 2 then
+                local copy = utils.imap(stack)
+                table.remove(copy)
+                local parent = node:from_path(copy)
+
                 if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
-                    -- if parent.node_type == "field" then
-                    local ref_node = self.nodemap[x.ref_hash]
-                    assert(ref_node)
-
-                    local copy = utils.imap(stack)
-                    table.remove(copy)
-                    local parent = node:from_path(copy)
-
-                    if #t.fields == 0 then
-                        -- base class ?
-                    else
-                        if parent.node_type == "field" then
-                            local f = t.fields[#t.fields]
+                    if parent.node_type == "field" then
+                        local ref_node = self.nodemap[x.ref_hash]
+                        assert(ref_node)
+                        local f = t.fields[#t.fields]
+                        if f.type == "template" then
+                            -- template argument
+                            self:push_ref(ref_node, function()
+                                -- do nothing
+                            end, f)
+                        else
                             self:push_ref(ref_node, f.set_type, f)
                         end
+                    elseif parent.node_type == "method" then
+                    elseif parent.node_type == "typedef" then
+                    else
+                        assert(false)
                     end
-                    -- end
+                elseif x.cursor_kind == CXCursorKind.CXCursor_TemplateRef then
+                    local ref_node = self.nodemap[x.ref_hash]
+                    assert(ref_node)
+                    local f = t.fields[#t.fields]
+                    assert(f.type == "template" or f.type.pointee == "template")
+                    self:push_ref(ref_node, f.set_type, f)
                 elseif x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
                 elseif x.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
                 else
+                    -- assert(false)
                 end
             else
                 -- nested
@@ -392,8 +403,10 @@ local Exporter = {
             return self:export_enum(node)
         elseif node.node_type == "typedef" then
             return self:export_typedef(node)
-        elseif node.node_type == "struct" or node.node_type == "union" then
+        elseif node.node_type == "struct" or node.node_type == "union" or node.node_type == "class_template" then
             return self:export_struct(node)
+        elseif not node.node_type then
+            return
         else
             assert(false)
         end

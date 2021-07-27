@@ -310,7 +310,9 @@ M.type_from_cx_type = function(cxType, cursor)
     end
 
     if cxType.kind == CXTypeKind.CXType_Unexposed then
-        -- template T ?
+        if clang.clang_Type_getNumTemplateArguments(cxType) ~= 0 then
+            return "template", is_const
+        end
         return "unexposed", is_const
     elseif cxType.kind == CXTypeKind.CXType_Pointer or cxType.kind == CXTypeKind.CXType_LValueReference then
         -- pointer

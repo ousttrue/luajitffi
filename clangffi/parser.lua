@@ -134,7 +134,6 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_NamespaceRef then
         elseif cursor.kind == CXCursorKind.CXCursor_OverloadedDeclRef then
         elseif cursor.kind == CXCursorKind.CXCursor_CXXAccessSpecifier then
-        elseif cursor.kind == CXCursorKind.CXCursor_CXXMethod then
         elseif cursor.kind == CXCursorKind.CXCursor_ClassDecl then
         elseif cursor.kind == CXCursorKind.CXCursor_Constructor then
         elseif cursor.kind == CXCursorKind.CXCursor_Destructor then
@@ -142,6 +141,8 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_ConversionFunction then
         elseif cursor.kind == CXCursorKind.CXCursor_DLLImport then
         elseif cursor.kind == CXCursorKind.CXCursor_DLLExport then
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXMethod then
+            node.node_type = "method"
         elseif cursor.kind == CXCursorKind.CXCursor_ConditionalOperator then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_UnaryOperator then
