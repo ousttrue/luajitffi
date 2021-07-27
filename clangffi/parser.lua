@@ -11,7 +11,6 @@ local CXCursorKind = mod.enums.CXCursorKind
 ---@field root Node
 ---@field nodemap table<integer, Node>
 ---@field node_count integer
----@field reverse_reference_map table<integer, Node[]>
 local Parser = {
     ---@param self Parser
     ---@param exports Export[]
@@ -111,14 +110,12 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_InclusionDirective then
         elseif cursor.kind == CXCursorKind.CXCursor_MacroExpansion then
         elseif cursor.kind == CXCursorKind.CXCursor_UnexposedDecl then
-        elseif cursor.kind == CXCursorKind.CXCursor_ClassTemplate then
         elseif cursor.kind == CXCursorKind.CXCursor_CXXBaseSpecifier then
         elseif cursor.kind == CXCursorKind.CXCursor_TemplateTypeParameter then
         elseif cursor.kind == CXCursorKind.CXCursor_CXXTypeidExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_ClassTemplatePartialSpecialization then
         elseif cursor.kind == CXCursorKind.CXCursor_StaticAssert then
         elseif cursor.kind == CXCursorKind.CXCursor_DeclRefExpr then
-        elseif cursor.kind == CXCursorKind.CXCursor_TemplateRef then
         elseif cursor.kind == CXCursorKind.CXCursor_FunctionTemplate then
         elseif cursor.kind == CXCursorKind.CXCursor_NonTypeTemplateParameter then
         elseif cursor.kind == CXCursorKind.CXCursor_VarDecl then
@@ -180,22 +177,22 @@ local Parser = {
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_FieldDecl then
             node.node_type = "field"
+            local offset = tonumber(clang.clang_Cursor_getOffsetOfField(cursor))
+            node.offset = offset
             local cxType = clang.clang_getCursorType(cursor)
             local t, is_const = types.type_from_cx_type(cxType, cursor)
             node.type = t
             -- node.is_const = is_const
+        elseif cursor.kind == CXCursorKind.CXCursor_TemplateRef then
+            node.node_type = "templateref"
+            local referenced = clang.clang_getCursorReferenced(cursor)
+            local ref_hash = clang.clang_hashCursor(referenced)
+            node.ref_hash = ref_hash
         elseif cursor.kind == CXCursorKind.CXCursor_TypeRef then
             node.node_type = "typeref"
             local referenced = clang.clang_getCursorReferenced(cursor)
             local ref_hash = clang.clang_hashCursor(referenced)
             node.ref_hash = ref_hash
-
-            local ref_list = self.reverse_reference_map[ref_hash]
-            if not ref_list then
-                ref_list = {}
-                self.reverse_reference_map[ref_hash] = ref_list
-            end
-            table.insert(ref_list, node)
         elseif cursor.kind == CXCursorKind.CXCursor_EnumDecl then
             node.node_type = "enum"
             local t = types.get_enum_int_type(cursor)
@@ -210,6 +207,8 @@ local Parser = {
             node.type = t
         elseif cursor.kind == CXCursorKind.CXCursor_StructDecl then
             node.node_type = "struct"
+            local cxType = clang.clang_getCursorType(cursor)
+            node.size = clang.clang_Type_getSizeOf(cxType)
             local semantic_parent = clang.clang_getCursorSemanticParent(cursor)
             if
                 semantic_parent.kind ~= CXCursorKind.CXCursor_TranslationUnit
@@ -223,6 +222,8 @@ local Parser = {
             end
         elseif cursor.kind == CXCursorKind.CXCursor_UnionDecl then
             node.node_type = "union"
+        elseif cursor.kind == CXCursorKind.CXCursor_ClassTemplate then
+            node.node_type = "class_template"
         else
             assert(false, string.format("unknown kind: %q", cursor.kind))
         end
@@ -284,41 +285,6 @@ local Parser = {
         else
             assert(false)
         end
-    end,
-
-    -- 不要な typedef
-    -- typedef Tag struct {} Name;
-    -- 的なのを除去する
-    ---@param self Parser
-    ---@return integer
-    resolve_typedef = function(self)
-        local count = 0
-        for stack, node in self.root:traverse() do
-            if node.node_type == "typedef" then
-                local replace = self:replace_typedef(node)
-                if replace then
-                    -- replace parent
-                    local path = utils.map(stack, function(x)
-                        return x
-                    end)
-                    table.remove(path)
-                    local parent = self.root:from_path(path)
-                    assert(parent)
-                    parent:replace_child(node, replace)
-
-                    -- replace reference
-                    local ref_list = self.reverse_reference_map[node.hash]
-                    if ref_list then
-                        for j, x in ipairs(ref_list) do
-                            x.ref_hash = replace.hash
-                        end
-                    end
-                    count = count + 1
-                end
-            end
-        end
-
-        return count
     end,
 }
 
