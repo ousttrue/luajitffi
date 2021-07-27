@@ -72,6 +72,7 @@ local Exporter = {
     ---@param t any
     ---@return Ref
     push_ref = function(self, dst, set_type, t)
+        assert(set_type)
         local ref = utils.new(types.Ref, {
             node = dst,
             set_type = function(node)
@@ -237,6 +238,7 @@ local Exporter = {
                 elseif x.cursor_kind == CXCursorKind.CXCursor_ParenExpr then
                     t.values[#t.values].value = table.concat(x.tokens, "")
                 elseif x.cursor_kind == CXCursorKind.CXCursor_UnexposedExpr then
+                elseif x.cursor_kind == CXCursorKind.CXCursor_MacroExpansion then
                 else
                     assert(false, string.format("unknown CXCurosrKind: %s", x.cursor_kind))
                 end
@@ -369,15 +371,25 @@ local Exporter = {
                         end
                     elseif parent.node_type == "method" then
                     elseif parent.node_type == "typedef" then
+                    elseif parent.node_type == "base_class" then
                     else
                         assert(false)
                     end
                 elseif x.cursor_kind == CXCursorKind.CXCursor_TemplateRef then
-                    local ref_node = self.nodemap[x.ref_hash]
-                    assert(ref_node)
-                    local f = t.fields[#t.fields]
-                    assert(f.type == "template" or f.type.pointee == "template")
-                    self:push_ref(ref_node, f.set_type, f)
+                    if parent.node_type == "field" then
+                        local ref_node = self.nodemap[x.ref_hash]
+                        assert(ref_node)
+                        local f = t.fields[#t.fields]
+                        assert(f.type == "template" or f.type.pointee == "template" or f.type.element == "template")
+                        self:push_ref(ref_node, f.set_type, f)
+                    elseif parent.node_type == "method" then
+                        local ref_node = self.nodemap[x.ref_hash]
+                        assert(ref_node)
+                        local m = t.methods[#t.methods]
+                        self:push_ref(ref_node, m.set_result_type, m)
+                    else
+                        assert(false)
+                    end
                 elseif x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
                 elseif x.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
                 elseif

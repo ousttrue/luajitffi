@@ -360,6 +360,8 @@ M.type_from_cx_type = function(cxType, cursor)
         return "elaborated", is_const
     elseif cxType.kind == CXTypeKind.CXType_Record then
         return "record", is_const
+    elseif cxType.kind == CXTypeKind.CXType_Enum then
+        return "enum", is_const
     else
         assert(false)
     end

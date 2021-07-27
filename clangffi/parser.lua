@@ -110,7 +110,6 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_InclusionDirective then
         elseif cursor.kind == CXCursorKind.CXCursor_MacroExpansion then
         elseif cursor.kind == CXCursorKind.CXCursor_UnexposedDecl then
-        elseif cursor.kind == CXCursorKind.CXCursor_CXXBaseSpecifier then
         elseif cursor.kind == CXCursorKind.CXCursor_TemplateTypeParameter then
         elseif cursor.kind == CXCursorKind.CXCursor_CXXTypeidExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_ClassTemplatePartialSpecialization then
@@ -159,6 +158,8 @@ local Parser = {
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_FloatingLiteral then
             node.tokens = clang_util.get_tokens(cursor)
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXBaseSpecifier then
+            node.node_type = "base_class"
         elseif cursor.kind == CXCursorKind.CXCursor_FunctionDecl or cursor.kind == CXCursorKind.CXCursor_CXXMethod then
             node.node_type = "function"
             if cursor.kind == CXCursorKind.CXCursor_CXXMethod then
