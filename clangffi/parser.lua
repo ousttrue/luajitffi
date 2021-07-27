@@ -141,6 +141,7 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_ClassDecl then
         elseif cursor.kind == CXCursorKind.CXCursor_Constructor then
         elseif cursor.kind == CXCursorKind.CXCursor_Destructor then
+        elseif cursor.kind == CXCursorKind.CXCursor_CXXDeleteExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_ConversionFunction then
         elseif cursor.kind == CXCursorKind.CXCursor_DLLImport then
         elseif cursor.kind == CXCursorKind.CXCursor_DLLExport then
@@ -209,6 +210,17 @@ local Parser = {
             node.type = t
         elseif cursor.kind == CXCursorKind.CXCursor_StructDecl then
             node.node_type = "struct"
+            local semantic_parent = clang.clang_getCursorSemanticParent(cursor)
+            if
+                semantic_parent.kind ~= CXCursorKind.CXCursor_TranslationUnit
+                and semantic_parent.kind ~= CXCursorKind.CXCursor_UnexposedDecl
+            then
+                local semantic_parent_hash = clang.clang_hashCursor(semantic_parent)
+                if semantic_parent_hash > 0 then
+                    -- nested type
+                    node.semantic_parent_hash = semantic_parent_hash
+                end
+            end
         elseif cursor.kind == CXCursorKind.CXCursor_UnionDecl then
             node.node_type = "union"
         else

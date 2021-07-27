@@ -7,8 +7,9 @@ luajit FFI generator using libclang
 * [x] fix set_type
 * [x] imgui(c++ mangle)
 * [ ] automation [FFI Callbacks with pass by value structs](http://wiki.luajit.org/FFI-Callbacks-with-pass-by-value-structs)
-* [ ] struct: automation nested type order
+* [x] struct: automation nested type order
 * [ ] struct: @field
+* [ ] struct: skip ImVector<T>
 * [ ] cdef require order
 * [x] function: default argument
 * [x] function: overload. same name has suffix

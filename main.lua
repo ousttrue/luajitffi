@@ -134,7 +134,7 @@ lua main.lua
         print(path)
         local w = io.open(path, "wb")
 
-        w:write(string.format("-- %s\n", export_header.header:gsub("\\", "/")))
+        w:write(string.format("-- generated from %s%s\n", name, ext))
         w:write("local ffi = require 'ffi'\n")
         w:write("ffi.cdef[[\n")
 
@@ -142,6 +142,15 @@ lua main.lua
             if t.name == "ImFontAtlas" or t.name == "ImFont" then
                 -- skip C++ type
             else
+                -- before nested
+                if t.nested then
+                    for j, n in ipairs(t.nested) do
+                        local text = n:cdef()
+                        w:write(text)
+                        w:write(";\n")
+                    end
+                end
+
                 local text = t:cdef()
                 w:write(text)
                 w:write(";\n")

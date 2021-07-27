@@ -355,7 +355,16 @@ local Exporter = {
         end
 
         if not types.is_anonymous(t) then
-            table.insert(export_header.types, t)
+            if node.semantic_parent_hash then
+                local semantic_parent = self.nodemap[node.semantic_parent_hash]
+                local semantic_parent_type = self.used[semantic_parent]
+                if not semantic_parent_type.nested then
+                    semantic_parent_type.nested = {}
+                end
+                table.insert(semantic_parent_type.nested, t)
+            else
+                table.insert(export_header.types, t)
+            end
             self.used[node] = t
         end
         return t
@@ -367,6 +376,10 @@ local Exporter = {
         table.insert(self.export_list, { node = node })
     end,
 
+    ---@param self Exporter
+    ---@param node Node
+    ---@param parent Struct
+    ---@return Node
     export = function(self, node)
         local found = self.used[node]
         if found then
@@ -384,7 +397,6 @@ local Exporter = {
         else
             assert(false)
         end
-        return node
     end,
 
     ---@param self Exporter
