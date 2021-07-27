@@ -141,8 +141,6 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_ConversionFunction then
         elseif cursor.kind == CXCursorKind.CXCursor_DLLImport then
         elseif cursor.kind == CXCursorKind.CXCursor_DLLExport then
-        elseif cursor.kind == CXCursorKind.CXCursor_CXXMethod then
-            node.node_type = "method"
         elseif cursor.kind == CXCursorKind.CXCursor_ConditionalOperator then
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_UnaryOperator then
@@ -161,8 +159,11 @@ local Parser = {
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_FloatingLiteral then
             node.tokens = clang_util.get_tokens(cursor)
-        elseif cursor.kind == CXCursorKind.CXCursor_FunctionDecl then
+        elseif cursor.kind == CXCursorKind.CXCursor_FunctionDecl or cursor.kind == CXCursorKind.CXCursor_CXXMethod then
             node.node_type = "function"
+            if cursor.kind == CXCursorKind.CXCursor_CXXMethod then
+                node.node_type = "method"
+            end
             local cxType = clang.clang_getCursorResultType(cursor)
             local t, is_const = types.type_from_cx_type(cxType, cursor)
             node.type = t

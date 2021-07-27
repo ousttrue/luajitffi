@@ -131,6 +131,7 @@ M.Param = {
 ---@field result_type any
 ---@field result_is_const boolean
 ---@field same_name Function[]
+---@field is_method boolean
 M.Function = {
     ---@param self Function
     ---@return string
@@ -231,6 +232,7 @@ M.Field = {
 ---@class Struct
 ---@field name string
 ---@field fields Field[]
+---@field methods Function[]
 M.Struct = {
     ---@param self Struct
     ---@return string

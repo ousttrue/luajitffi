@@ -34,7 +34,7 @@ local CommandLine = {
             "CFLAGS:[%s], EXPORT:[%s] => %s",
             table.concat(self.CFLAGS, ", "),
             table.concat(
-                utils.map(self.EXPORTS, function(v)
+                utils.imap(self.EXPORTS, function(i, v)
                     return tostring(v)
                 end),
                 ", "
@@ -139,21 +139,27 @@ lua main.lua
         w:write("ffi.cdef[[\n")
 
         for i, t in ipairs(export_header.types) do
-            if t.name == "ImFontAtlas" or t.name == "ImFont" then
-                -- skip C++ type
-            else
-                -- before nested
-                if t.nested then
-                    for j, n in ipairs(t.nested) do
-                        local text = n:cdef()
+            -- before nested
+            if t.nested then
+                for j, n in ipairs(t.nested) do
+                    local text = n:cdef()
+                    w:write(text)
+                    w:write(";\n")
+                end
+            end
+
+            local text = t:cdef()
+            w:write(text)
+            w:write(";\n")
+
+            if t.methods then
+                for i, m in ipairs(t.methods) do
+                    if m.dll_export then
+                        local text = m:cdef()
                         w:write(text)
                         w:write(";\n")
                     end
                 end
-
-                local text = t:cdef()
-                w:write(text)
-                w:write(";\n")
             end
         end
 

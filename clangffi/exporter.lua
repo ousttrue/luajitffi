@@ -85,7 +85,7 @@ local Exporter = {
     ---@param self Exporter
     ---@param node Node
     ---@return Function
-    export_function = function(self, node)
+    export_function = function(self, node, is_method)
         local export_header = self:get_or_create_header(node.location.path)
         local t = utils.new(types.Function, {
             dll_export = false,
@@ -128,6 +128,8 @@ local Exporter = {
                     --
                 elseif x.cursor_kind == CXCursorKind.CXCursor_UnexposedAttr then
                     -- CINDEX_DEPRECATED
+                elseif x.cursor_kind == CXCursorKind.CXCursor_TemplateRef then
+                    --
                 else
                     assert(false)
                 end
@@ -145,8 +147,10 @@ local Exporter = {
             end
         end
 
-        table.insert(export_header.functions, t)
-        self.used[node] = t
+        if not is_method then
+            table.insert(export_header.functions, t)
+            self.used[node] = t
+        end
         return t
     end,
 
@@ -302,6 +306,7 @@ local Exporter = {
             name = node.spelling,
             location = node.location,
             fields = {},
+            methods = {},
         })
 
         for stack, x in node:traverse() do
@@ -316,6 +321,24 @@ local Exporter = {
                             type = x.type,
                         })
                     )
+
+                    if types.is_functionproto(x.type) then
+                        self:export_functionproto(x)
+                    end
+                elseif x.cursor_kind == CXCursorKind.CXCursor_CXXMethod then
+                    local m = self:export_function(x, true)
+                    m.name = string.format("%s_%s", t.name, x.spelling)
+                    table.insert(
+                        m.params,
+                        1,
+                        utils.new(types.Param, {
+                            name = "this",
+                            type = utils.new(types.Pointer, {
+                                pointee = t,
+                            }),
+                        })
+                    )
+                    table.insert(t.methods, m)
 
                     if types.is_functionproto(x.type) then
                         self:export_functionproto(x)
@@ -357,6 +380,15 @@ local Exporter = {
                     self:push_ref(ref_node, f.set_type, f)
                 elseif x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
                 elseif x.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
+                elseif
+                    x.cursor_kind == CXCursorKind.CXCursor_DLLImport
+                    or x.cursor_kind == CXCursorKind.CXCursor_DLLExport
+                then
+                    if parent.node_type == "method" then
+                        t.methods[#t.methods].dll_export = true
+                    else
+                        a = 0
+                    end
                 else
                     -- assert(false)
                 end

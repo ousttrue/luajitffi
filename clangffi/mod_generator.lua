@@ -230,6 +230,15 @@ M.libs.%s = {
                             end
                         end
                     end
+                    for i, s in ipairs(export_header.types) do
+                        if s.methods then
+                            for j, m in ipairs(s.methods) do
+                                if m.dll_export then
+                                    write_function(w, lib_name, m, "")
+                                end
+                            end
+                        end
+                    end
                 end
             end
             w:write("}\n")
