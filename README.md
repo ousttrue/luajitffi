@@ -3,6 +3,7 @@ luajit FFI generator using libclang
 
 ## ToDo
 
+* [ ] refactoring traverse
 * [x] lfs alternative and luarocks to luajit
 * [x] fix set_type
 * [x] imgui(c++ mangle)
@@ -10,18 +11,21 @@ luajit FFI generator using libclang
 * [x] struct: automation nested type order
 * [ ] struct: EmmyLua annotation @field
 * [x] struct: ImVector<T>
-* [x] struct: method
 * [ ] cdef require order
 * [x] function: default argument
 * [x] function: overload. same name has suffix
 * [ ] function: description from comment
 * [x] function: is variadic(...)
+* [x] method
+* [x] method: overload
+* [ ] com: example <https://qiita.com/otagaisama-1/items/b0804b9d6d37d82950f7>
 
 ## Setup
 
 ```
 > cd LuaJIT/src
-> cmd /C "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat" "&" "msvcbuild.bat"
+> cmd /K "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat" 
+VC> msvcbuild.bat
 ```
 ## Usage
 
@@ -29,8 +33,8 @@ luajit FFI generator using libclang
 
 ```
 lua main.lua
--Iinclude_dir(CFLAGS)
--DDefinition(CFLAGS)
--Eexport_header,dll_name.dll
--Oout_dir
+-I{Include_dir} #CFLAGS
+-D{Definition} #CFLAGS
+-E{Export_header},{dll_name.dll}
+-O{Out_dir}
 ```
