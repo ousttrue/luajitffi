@@ -106,7 +106,13 @@ lua main.lua
                             if node.spelling:find("operator") == 1 then
                                 -- skip
                             else
-                                exporter:push(node)
+                                if export.header:find("imgui_internal.h") then
+                                    if node.spelling:find("Dock") then
+                                        exporter:push(node)
+                                    end
+                                else
+                                    exporter:push(node)
+                                end
                             end
                         elseif node.node_type == "enum" then
                             exporter:push(node)
