@@ -121,8 +121,8 @@ Node.new = function(cursor, c, parent_cursor)
     local node = utils.new(Node, {
         hash = c,
         spelling = clang_util.get_spelling_from_cursor(cursor),
-        cursor_kind = cursor.kind,
-        type_kind = cxType.kind,
+        cursor_kind = tonumber(cursor.kind),
+        type_kind = tonumber(cxType.kind),
         location = clang_util.get_location(cursor),
     })
     return node
