@@ -8,6 +8,7 @@ local CXCursorKind = mod.enums.CXCursorKind
 ---@field header string
 ---@field functions Function[]
 ---@field types any[]
+---@field includes ExportHeader[]
 local ExportHeader = {
     ---@param self ExportHeader
     ---@return string
@@ -30,6 +31,7 @@ ExportHeader.new = function(header)
         header = header,
         functions = {},
         types = {},
+        includes = {},
     })
 end
 
@@ -50,7 +52,7 @@ end
 
 ---@class Exporter
 ---@field nodemap Table<integer, Node>
----@field headers Table<string, ExportHeader>
+---@field map Table<string, ExportHeader>
 ---@field export_list RefSrcDst[]
 ---@field used Table<Node, boolean>
 local Exporter = {
@@ -59,10 +61,10 @@ local Exporter = {
     ---@param path string
     ---@return ExportHeader
     get_or_create_header = function(self, path)
-        local export_header = self.headers[path]
+        local export_header = self.map[path]
         if not export_header then
             export_header = ExportHeader.new(path)
-            self.headers[path] = export_header
+            self.map[path] = export_header
         end
         return export_header
     end,
@@ -478,7 +480,7 @@ local Exporter = {
         end
 
         -- sort
-        for header, export_header in pairs(self.headers) do
+        for header, export_header in pairs(self.map) do
             export_header:sort()
 
             -- resolve same name function
@@ -507,7 +509,7 @@ local Exporter = {
 Exporter.new = function(nodemap)
     return utils.new(Exporter, {
         nodemap = nodemap,
-        headers = {},
+        map = {},
         used = {},
         export_list = {},
     })

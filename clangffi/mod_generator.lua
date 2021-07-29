@@ -150,14 +150,14 @@ local M = {
 ]])
 
         -- cdef
-        for header, export_header in pairs(exporter.headers) do
+        for header, export_header in pairs(exporter.map) do
             local dir, name, ext = utils.split_ext(header)
             w:write(string.format("require('%s.cdef.%s')\n", dir_name, name))
         end
 
         -- const
         w:write("M.enums = {\n")
-        for header, export_header in pairs(exporter.headers) do
+        for header, export_header in pairs(exporter.map) do
             for i, t in ipairs(export_header.types) do
                 if getmetatable(t) == types.Enum then
                     w:write(string.format("    %s = {\n", t.name))
@@ -172,7 +172,7 @@ local M = {
 
         -- string, typedef
         local used = {}
-        for header, export_header in pairs(exporter.headers) do
+        for header, export_header in pairs(exporter.map) do
             for i, t in ipairs(export_header.types) do
                 if not used[t.name] then
                     used[t.name] = true
@@ -212,7 +212,7 @@ M.libs.%s = {
                 lib_name
             ))
 
-            for header, export_header in pairs(exporter.headers) do
+            for header, export_header in pairs(exporter.map) do
                 if
                     #utils.ifilter(headers, function(i, x)
                         return x == header

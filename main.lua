@@ -68,7 +68,7 @@ lua main.lua
     end
 
     require("clangffi.cdef")
-    for header, export_header in pairs(exporter.headers) do
+    for header, export_header in pairs(exporter.map) do
         -- print(string.format("// %s", export_header))
         local _, name, ext = utils.split_ext(export_header.header)
         local path = string.format("%s/%s.lua", cdef_out_dir, name)
