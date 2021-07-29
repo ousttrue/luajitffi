@@ -112,6 +112,48 @@ local function write_function(w, lib_name, f, suffix)
     end
 end
 
+local function generate_require(w, dir_name, export_header)
+    for i, include in ipairs(export_header.includes) do
+        generate_require(w, dir_name, include)
+    end
+    if export_header.header then
+        local dir, name, ext = utils.split_ext(export_header.header)
+        w:write(string.format("require('%s.cdef.%s')\n", dir_name, name))
+    end
+end
+
+local function generate_const(w, export_header)
+    for i, include in ipairs(export_header.includes) do
+        generate_const(w, include)
+    end
+    for i, t in ipairs(export_header.types) do
+        if getmetatable(t) == types.Enum then
+            w:write(string.format("    %s = {\n", t.name))
+            for j, v in ipairs(t.values) do
+                w:write(string.format("        %s = C.%s,\n", v.name, v.name))
+            end
+            w:write("    },\n")
+        end
+    end
+end
+
+local function generate_struct_typedef(w, export_header, used)
+    for i, include in ipairs(export_header.includes) do
+        generate_struct_typedef(w, include, used)
+    end
+    for i, t in ipairs(export_header.types) do
+        if not used[t.name] then
+            used[t.name] = true
+            local mt = getmetatable(t)
+            if mt == types.Typedef then
+                w:write(string.format("---@class %s\n", t.name))
+            elseif mt == types.Struct then
+                w:write(string.format("---@class %s\n", t.name))
+            end
+        end
+    end
+end
+
 ---@class ModGenerator
 ---@field libs Table<string, string[]>
 local ModGenerator = {
@@ -150,41 +192,16 @@ local M = {
 ]])
 
         -- cdef
-        for header, export_header in pairs(exporter.map) do
-            local dir, name, ext = utils.split_ext(header)
-            w:write(string.format("require('%s.cdef.%s')\n", dir_name, name))
-        end
+        generate_require(w, dir_name, exporter.root)
 
         -- const
         w:write("M.enums = {\n")
-        for header, export_header in pairs(exporter.map) do
-            for i, t in ipairs(export_header.types) do
-                if getmetatable(t) == types.Enum then
-                    w:write(string.format("    %s = {\n", t.name))
-                    for j, v in ipairs(t.values) do
-                        w:write(string.format("        %s = C.%s,\n", v.name, v.name))
-                    end
-                    w:write("    },\n")
-                end
-            end
-        end
+        generate_const(w, exporter.root)
         w:write("}\n")
 
-        -- string, typedef
+        -- struct, typedef
         local used = {}
-        for header, export_header in pairs(exporter.map) do
-            for i, t in ipairs(export_header.types) do
-                if not used[t.name] then
-                    used[t.name] = true
-                    local mt = getmetatable(t)
-                    if mt == types.Typedef then
-                        w:write(string.format("---@class %s\n", t.name))
-                    elseif mt == types.Struct then
-                        w:write(string.format("---@class %s\n", t.name))
-                    end
-                end
-            end
-        end
+        generate_struct_typedef(w, exporter.root, used)
 
         -- functions
         for lib, headers in pairs(self.libs) do

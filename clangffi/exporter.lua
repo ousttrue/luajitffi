@@ -59,12 +59,14 @@ local Exporter = {
 
     ---@param self Exporter
     ---@param path string
+    ---@param parent ExportHeader
     ---@return ExportHeader
-    get_or_create_header = function(self, path)
+    get_or_create_header = function(self, path, parent)
         local export_header = self.map[path]
         if not export_header then
             export_header = ExportHeader.new(path)
             self.map[path] = export_header
+            table.insert(parent.includes, export_header)
         end
         return export_header
     end,
@@ -99,7 +101,7 @@ local Exporter = {
     ---@param node Node
     ---@return Function
     export_function = function(self, node, is_method)
-        local export_header = self:get_or_create_header(node.location.path)
+        local export_header = self:get_or_create_header(node.location.path, self.root)
         local t = utils.new(types.Function, {
             dll_export = false,
             name = node.spelling,
@@ -224,8 +226,8 @@ local Exporter = {
     ---@param self Exporter
     ---@param node Node
     ---@return Enum
-    export_enum = function(self, node)
-        local export_header = self:get_or_create_header(node.location.path)
+    export_enum = function(self, node, parent)
+        local export_header = self:get_or_create_header(node.location.path, parent)
         local t = utils.new(types.Enum, {
             name = node.spelling,
             location = node.location,
@@ -278,8 +280,8 @@ local Exporter = {
     ---@param self Exporter
     ---@param node Node
     ---@return Typedef
-    export_typedef = function(self, node)
-        local export_header = self:get_or_create_header(node.location.path)
+    export_typedef = function(self, node, parent)
+        local export_header = self:get_or_create_header(node.location.path, parent)
         local t = utils.new(types.Typedef, {
             name = node.spelling,
             location = node.location,
@@ -324,8 +326,8 @@ local Exporter = {
     ---@param self Exporter
     ---@param node Node
     ---@return Struct
-    export_struct = function(self, node)
-        local export_header = self:get_or_create_header(node.location.path)
+    export_struct = function(self, node, parent)
+        local export_header = self:get_or_create_header(node.location.path, parent)
         local t = utils.new(types.Struct, {
             name = node.spelling,
             location = node.location,
@@ -451,7 +453,7 @@ local Exporter = {
     ---@param node Node
     ---@param parent Struct
     ---@return Node
-    export = function(self, node)
+    export = function(self, node, parent)
         local found = self.used[node]
         if found then
             return found
@@ -460,11 +462,11 @@ local Exporter = {
         if node.node_type == "function" then
             return self:export_function(node)
         elseif node.node_type == "enum" then
-            return self:export_enum(node)
+            return self:export_enum(node, parent)
         elseif node.node_type == "typedef" then
-            return self:export_typedef(node)
+            return self:export_typedef(node, parent)
         elseif node.node_type == "struct" or node.node_type == "union" or node.node_type == "class_template" then
-            return self:export_struct(node)
+            return self:export_struct(node, parent)
         elseif not node.node_type then
             return
         else
@@ -483,7 +485,7 @@ local Exporter = {
             local export_list = self.export_list
             self.export_list = {}
             for i, ref in ipairs(export_list) do
-                local t = self:export(ref.node)
+                local t = self:export(ref.node, ref.src)
                 if ref.set_type then
                     ref.set_type(t)
                 end
