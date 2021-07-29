@@ -47,7 +47,7 @@ end
 
 ---@class RefSrcDst
 ---@field node Node
----@field src Node
+---@field src ExportHeader
 ---@field set_type fun(node:Node):nil
 
 ---@class Exporter
@@ -71,12 +71,13 @@ local Exporter = {
 
     ---@param self Exporter
     ---@param dst Node
-    ---@param src Node
+    ---@param src ExportHeader
     ---@param set_type fun(t:any, node:Node):nil
     ---@param t any
     ---@return Ref
     push_ref = function(self, dst, src, set_type, t)
         assert(set_type)
+        assert(getmetatable(src) == ExportHeader)
         local ref = utils.new(types.Ref, {
             node = dst,
             src = src,
@@ -86,6 +87,12 @@ local Exporter = {
         })
         table.insert(self.export_list, ref)
         return ref
+    end,
+
+    ---@param self Exporter
+    ---@param node Node
+    push = function(self, node)
+        table.insert(self.export_list, { node = node, src = self.root })
     end,
 
     ---@param self Exporter
@@ -117,7 +124,7 @@ local Exporter = {
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     -- return
-                    self:push_ref(ref_node, node, t.set_result_type, t)
+                    self:push_ref(ref_node, self.map[node.location.path], t.set_result_type, t)
                 elseif x.cursor_kind == CXCursorKind.CXCursor_ParmDecl then
                     local p = utils.new(types.Param, {
                         name = x.spelling,
@@ -144,7 +151,12 @@ local Exporter = {
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    self:push_ref(ref_node, node, t.params[#t.params].set_type, t.params[#t.params])
+                    self:push_ref(
+                        ref_node,
+                        self.map[node.location.path],
+                        t.params[#t.params].set_type,
+                        t.params[#t.params]
+                    )
                 else
                     -- other descendant
                 end
@@ -173,7 +185,7 @@ local Exporter = {
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
                     -- return
-                    self:push_ref(ref_node, node, t.set_result_type, t)
+                    self:push_ref(ref_node, self.map[node.location.path], t.set_result_type, t)
                 elseif x.cursor_kind == CXCursorKind.CXCursor_ParmDecl then
                     local p = utils.new(types.Param, {
                         name = x.spelling,
@@ -190,7 +202,12 @@ local Exporter = {
                     -- param
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    self:push_ref(ref_node, node, t.params[#t.params].set_type, t.params[#t.params])
+                    self:push_ref(
+                        ref_node,
+                        self.map[node.location.path],
+                        t.params[#t.params].set_type,
+                        t.params[#t.params]
+                    )
                     -- else
                     --     -- assert(false)
                     -- end
@@ -279,7 +296,7 @@ local Exporter = {
                     if x.node_type == "typeref" then
                         local ref_node = self.nodemap[x.ref_hash]
                         assert(ref_node)
-                        self:push_ref(ref_node, node, t.set_type, t)
+                        self:push_ref(ref_node, self.map[node.location.path], t.set_type, t)
                     elseif x.node_type == "struct" or x.node_type == "union" then
                         -- tyepdef struct {} hoge;
                         t:set_type(self:export(x))
@@ -368,11 +385,11 @@ local Exporter = {
                         local f = t.fields[#t.fields]
                         if f.type == "template" then
                             -- template argument
-                            self:push_ref(ref_node, node, function()
+                            self:push_ref(ref_node, self.map[node.location.path], function()
                                 -- do nothing
                             end, f)
                         else
-                            self:push_ref(ref_node, node, f.set_type, f)
+                            self:push_ref(ref_node, self.map[node.location.path], f.set_type, f)
                         end
                     elseif parent.node_type == "method" then
                     elseif parent.node_type == "typedef" then
@@ -386,12 +403,12 @@ local Exporter = {
                         assert(ref_node)
                         local f = t.fields[#t.fields]
                         assert(f.type == "template" or f.type.pointee == "template" or f.type.element == "template")
-                        self:push_ref(ref_node, node, f.set_type, f)
+                        self:push_ref(ref_node, self.map[node.location.path], f.set_type, f)
                     elseif parent.node_type == "method" then
                         local ref_node = self.nodemap[x.ref_hash]
                         assert(ref_node)
                         local m = t.methods[#t.methods]
-                        self:push_ref(ref_node, node, m.set_result_type, m)
+                        self:push_ref(ref_node, self.map[node.location.path], m.set_result_type, m)
                     else
                         assert(false)
                     end
@@ -428,12 +445,6 @@ local Exporter = {
             self.used[node] = t
         end
         return t
-    end,
-
-    ---@param self Exporter
-    ---@param node Node
-    push = function(self, node)
-        table.insert(self.export_list, { node = node })
     end,
 
     ---@param self Exporter
@@ -512,6 +523,7 @@ Exporter.new = function(nodemap)
         map = {},
         used = {},
         export_list = {},
+        root = ExportHeader.new(),
     })
 end
 
