@@ -11,7 +11,7 @@ luajit FFI generator using libclang
 * [x] struct: automation nested type order
 * [ ] struct: EmmyLua annotation @field
 * [x] struct: ImVector<T>
-* [ ] cdef require order
+* [x] cdef require order
 * [x] function: default argument
 * [x] function: overload. same name has suffix
 * [ ] function: description from comment
