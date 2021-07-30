@@ -113,10 +113,40 @@ local Exporter = {
             is_variadic = node.is_variadic,
         })
 
-        for stack, x in node:traverse() do
-            if #stack == 0 then
-                -- skip self
-            elseif #stack == 1 then
+        local function export_param(param_node)
+            local p = utils.new(types.Param, {
+                name = param_node.spelling,
+                type = param_node.type,
+                is_const = param_node.is_const,
+            })
+            p.default_value = get_default_value(param_node.tokens)
+            if types.is_functionproto(param_node.type) then
+                self:export_functionproto(param_node)
+            end
+
+            if param_node.children then
+                for i, x in ipairs(param_node.children) do
+                    if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
+                        -- param
+                        local ref_node = self.nodemap[x.ref_hash]
+                        assert(ref_node)
+                        self:push_ref(
+                            ref_node,
+                            self.map[node.location.path],
+                            p.set_type,
+                            p
+                        )
+                    else
+                        -- other descendant
+                    end
+                end
+            end
+
+            return p
+        end
+
+        if node.children then
+            for i, x in ipairs(node.children) do
                 if
                     x.cursor_kind == CXCursorKind.CXCursor_DLLImport
                     or x.cursor_kind == CXCursorKind.CXCursor_DLLExport
@@ -128,17 +158,8 @@ local Exporter = {
                     -- return
                     self:push_ref(ref_node, self.map[node.location.path], t.set_result_type, t)
                 elseif x.cursor_kind == CXCursorKind.CXCursor_ParmDecl then
-                    local p = utils.new(types.Param, {
-                        name = x.spelling,
-                        type = x.type,
-                        is_const = x.is_const,
-                    })
-                    p.default_value = get_default_value(x.tokens)
+                    local p = export_param(x)
                     table.insert(t.params, p)
-
-                    if types.is_functionproto(x.type) then
-                        self:export_functionproto(x)
-                    end
                 elseif x.cursor_kind == CXCursorKind.CXCursor_FunctionDecl then
                     --
                 elseif x.cursor_kind == CXCursorKind.CXCursor_UnexposedAttr then
@@ -148,22 +169,6 @@ local Exporter = {
                 else
                     assert(false)
                 end
-            elseif #stack == 2 then
-                if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
-                    -- param
-                    local ref_node = self.nodemap[x.ref_hash]
-                    assert(ref_node)
-                    self:push_ref(
-                        ref_node,
-                        self.map[node.location.path],
-                        t.params[#t.params].set_type,
-                        t.params[#t.params]
-                    )
-                else
-                    -- other descendant
-                end
-            else
-                -- skip
             end
         end
 
