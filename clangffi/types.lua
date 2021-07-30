@@ -167,7 +167,7 @@ M.FunctionProto = {
     ---@return string
     __tostring = function(self)
         local prefix = ""
-        local params = utils.map(self.params, function(p)
+        local params = utils.imap(self.params, function(i, p)
             -- assert(p.cursor_kind)
             return string.format("%s %s", p.type, p.name)
         end)
