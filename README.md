@@ -18,6 +18,7 @@ luajit FFI generator using libclang
 * [x] function: is variadic(...)
 * [x] method
 * [x] method: overload
+* [x] enum: remove prefix
 * [ ] com: example <https://qiita.com/otagaisama-1/items/b0804b9d6d37d82950f7>
 * [ ] separate annotation <https://github.com/sumneko/lua-language-server/wiki/Setting-without-VSCode>
 

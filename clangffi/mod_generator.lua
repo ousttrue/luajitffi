@@ -122,6 +122,14 @@ local function generate_require(w, dir_name, export_header)
     end
 end
 
+local function get_enum_short_name(enum_name, value_name)
+    if value_name:find(enum_name) == 1 then
+        local short_name = value_name:sub(#enum_name + 1)
+        return short_name
+    end
+    return value_name
+end
+
 local function generate_const(w, export_header)
     for i, include in ipairs(export_header.includes) do
         generate_const(w, include)
@@ -130,7 +138,8 @@ local function generate_const(w, export_header)
         if getmetatable(t) == types.Enum then
             w:write(string.format("    %s = {\n", t.name))
             for j, v in ipairs(t.values) do
-                w:write(string.format("        %s = C.%s,\n", v.name, v.name))
+                local short_name = get_enum_short_name(t.name, v.name)
+                w:write(string.format("        %s = C.%s,\n", short_name, v.name))
             end
             w:write("    },\n")
         end
