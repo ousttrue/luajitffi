@@ -130,12 +130,7 @@ local Exporter = {
                         -- param
                         local ref_node = self.nodemap[x.ref_hash]
                         assert(ref_node)
-                        self:push_ref(
-                            ref_node,
-                            self.map[node.location.path],
-                            p.set_type,
-                            p
-                        )
+                        self:push_ref(ref_node, self.map[node.location.path], p.set_type, p)
                     else
                         -- other descendant
                     end
@@ -239,37 +234,37 @@ local Exporter = {
             values = {},
         })
 
-        for stack, x in node:traverse() do
-            if #stack == 0 then
-                -- self
-            elseif #stack == 1 then
+        if node.children then
+            for i, x in ipairs(node.children) do
                 if x.cursor_kind == CXCursorKind.CXCursor_EnumConstantDecl then
-                    table.insert(
-                        t.values,
-                        utils.new(types.EnumConst, {
-                            name = x.spelling,
-                            value = x.value,
-                        })
-                    )
+                    local e = utils.new(types.EnumConst, {
+                        name = x.spelling,
+                        value = x.value,
+                    })
+                    table.insert(t.values, e)
+
+                    if x.children then
+                        for j, y in ipairs(x.children) do
+                            if y.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
+                                e.value = table.concat(y.tokens, " ")
+                            elseif y.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
+                                e.value = y.spelling
+                            elseif y.cursor_kind == CXCursorKind.CXCursor_BinaryOperator then
+                                e.value = table.concat(y.tokens, " ")
+                            elseif y.cursor_kind == CXCursorKind.CXCursor_UnaryOperator then
+                                e.value = table.concat(y.tokens, "")
+                            elseif y.cursor_kind == CXCursorKind.CXCursor_ParenExpr then
+                                e.value = table.concat(y.tokens, "")
+                            elseif y.cursor_kind == CXCursorKind.CXCursor_UnexposedExpr then
+                            elseif y.cursor_kind == CXCursorKind.CXCursor_MacroExpansion then
+                            else
+                                assert(false, string.format("unknown CXCurosrKind: %s", y.cursor_kind))
+                            end
+                        end
+                    end
                 elseif x.cursor_kind == CXCursorKind.CXCursor_MacroDefinition then
                 else
                     assert(false)
-                end
-            elseif #stack == 2 then
-                if x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
-                    t.values[#t.values].value = table.concat(x.tokens, " ")
-                elseif x.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
-                    t.values[#t.values].value = x.spelling
-                elseif x.cursor_kind == CXCursorKind.CXCursor_BinaryOperator then
-                    t.values[#t.values].value = table.concat(x.tokens, " ")
-                elseif x.cursor_kind == CXCursorKind.CXCursor_UnaryOperator then
-                    t.values[#t.values].value = table.concat(x.tokens, "")
-                elseif x.cursor_kind == CXCursorKind.CXCursor_ParenExpr then
-                    t.values[#t.values].value = table.concat(x.tokens, "")
-                elseif x.cursor_kind == CXCursorKind.CXCursor_UnexposedExpr then
-                elseif x.cursor_kind == CXCursorKind.CXCursor_MacroExpansion then
-                else
-                    assert(false, string.format("unknown CXCurosrKind: %s", x.cursor_kind))
                 end
             end
         end
