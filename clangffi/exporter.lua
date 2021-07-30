@@ -342,37 +342,21 @@ local Exporter = {
             if field_node.children then
                 for _, x in ipairs(field_node.children) do
                     if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
-                        if field_node.node_type == "field" then
-                            local ref_node = self.nodemap[x.ref_hash]
-                            assert(ref_node)
-                            if f.type == "template" then
-                                -- template argument
-                                self:push_ref(ref_node, self.map[node.location.path], function()
-                                    -- do nothing
-                                end, f)
-                            else
-                                self:push_ref(ref_node, self.map[node.location.path], f.set_type, f)
-                            end
-                        elseif field_node.node_type == "method" then
-                        elseif field_node.node_type == "typedef" then
-                        elseif field_node.node_type == "base_class" then
+                        local ref_node = self.nodemap[x.ref_hash]
+                        assert(ref_node)
+                        if f.type == "template" then
+                            -- template argument
+                            self:push_ref(ref_node, self.map[node.location.path], function()
+                                -- do nothing
+                            end, f)
                         else
-                            assert(false)
+                            self:push_ref(ref_node, self.map[node.location.path], f.set_type, f)
                         end
                     elseif x.cursor_kind == CXCursorKind.CXCursor_TemplateRef then
-                        if field_node.node_type == "field" then
-                            local ref_node = self.nodemap[x.ref_hash]
-                            assert(ref_node)
-                            assert(f.type == "template" or f.type.pointee == "template" or f.type.element == "template")
-                            self:push_ref(ref_node, self.map[node.location.path], f.set_type, f)
-                        elseif field_node.node_type == "method" then
-                            local ref_node = self.nodemap[x.ref_hash]
-                            assert(ref_node)
-                            local m = t.methods[#t.methods]
-                            self:push_ref(ref_node, self.map[node.location.path], m.set_result_type, m)
-                        else
-                            assert(false)
-                        end
+                        local ref_node = self.nodemap[x.ref_hash]
+                        assert(ref_node)
+                        assert(f.type == "template" or f.type.pointee == "template" or f.type.element == "template")
+                        self:push_ref(ref_node, self.map[node.location.path], f.set_type, f)
                     elseif x.cursor_kind == CXCursorKind.CXCursor_IntegerLiteral then
                     elseif x.cursor_kind == CXCursorKind.CXCursor_DeclRefExpr then
                     elseif
