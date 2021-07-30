@@ -229,10 +229,11 @@ M.libs.%s = {
                 lib_name
             ))
 
-            for header, export_header in pairs(exporter.map) do
+            ---@param export_header ExportHeader
+            local function generate_function(export_header)
                 if
                     #utils.ifilter(headers, function(i, x)
-                        return x == header
+                        return x == export_header.header
                     end) > 0
                 then
                     for i, f in ipairs(export_header.functions) do
@@ -257,7 +258,12 @@ M.libs.%s = {
                         end
                     end
                 end
+
+                for _, include in ipairs(export_header.includes) do
+                    generate_function(include)
+                end
             end
+            generate_function(exporter.root)
             w:write("}\n")
         end
 
