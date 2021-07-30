@@ -3,7 +3,7 @@ luajit FFI generator using libclang
 
 ## ToDo
 
-* [ ] refactoring traverse
+* [x] refactoring traverse
 * [x] lfs alternative and luarocks to luajit
 * [x] fix set_type
 * [x] imgui(c++ mangle)

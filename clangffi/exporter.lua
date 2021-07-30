@@ -176,51 +176,48 @@ local Exporter = {
 
     ---@param self Exporter
     ---@param node Node
-    ---@return FunctionProto
     export_functionproto = function(self, node)
-        local t = node.type.pointee
-        for stack, x in node:traverse() do
-            if #stack == 0 then
-                -- skip self
-            elseif #stack == 1 then
+        local function export_param(param_node)
+            local p = utils.new(types.Param, {
+                name = param_node.spelling,
+                type = param_node.type,
+                is_const = param_node.is_const,
+            })
+
+            if param_node.children then
+                for i, x in ipairs(param_node.children) do
+                    if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
+                        local ref_node = self.nodemap[x.ref_hash]
+                        assert(ref_node)
+                        self:push_ref(
+                            ref_node,
+                            self.map[node.location.path],
+                            p.set_type,
+                            p
+                        )
+                    end
+                end
+            end
+
+            return p
+        end
+
+        if node.children then
+            local t = node.type.pointee
+            for i, x in ipairs(node.children) do
                 if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
+                    -- return
                     local ref_node = self.nodemap[x.ref_hash]
                     assert(ref_node)
-                    -- return
                     self:push_ref(ref_node, self.map[node.location.path], t.set_result_type, t)
                 elseif x.cursor_kind == CXCursorKind.CXCursor_ParmDecl then
-                    local p = utils.new(types.Param, {
-                        name = x.spelling,
-                        type = x.type,
-                        is_const = x.is_const,
-                    })
+                    local p = export_param(x)
                     table.insert(t.params, p)
                 else
                     assert(false)
                 end
-            elseif #stack == 2 then
-                if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
-                    -- if parent.node_type == "param" then
-                    -- param
-                    local ref_node = self.nodemap[x.ref_hash]
-                    assert(ref_node)
-                    self:push_ref(
-                        ref_node,
-                        self.map[node.location.path],
-                        t.params[#t.params].set_type,
-                        t.params[#t.params]
-                    )
-                    -- else
-                    --     -- assert(false)
-                    -- end
-                else
-                    -- other descendant
-                end
-            else
-                -- skip
             end
         end
-        return t
     end,
 
     ---@param self Exporter
