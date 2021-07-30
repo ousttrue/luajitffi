@@ -154,20 +154,45 @@ local function generate_struct_typedef(w, export_header, used)
     end
 end
 
+---@class Lib
+---@field link string dll name
+---@field name string
+---@field basename string
+---@field headers string[]
+local Lib = {}
+---@param link string
+Lib.new = function(link)
+    local _, basename, ext = utils.split_ext(link)
+    local lib_name = basename:sub(1)
+    if lib_name:find("lib") == 1 then
+        lib_name = lib_name:sub(4)
+    end
+
+    return utils.new(Lib, {
+        name = lib_name,
+        basename = basename,
+        link = link,
+        headers = {},
+    })
+end
+
 ---@class ModGenerator
----@field libs Table<string, string[]>
+---@field libs Lib[]
 local ModGenerator = {
 
     ---@param self ModGenerator
     ---@param link string
     ---@param header string
     push = function(self, link, header)
-        local lib = self.libs[link]
-        if not lib then
-            lib = {}
-            self.libs[link] = lib
+        for i, lib in ipairs(self.libs) do
+            if lib.link == link then
+                table.insert(lib.headers, header)
+                return
+            end
         end
-        table.insert(lib, header)
+        local lib = Lib.new(link)
+        table.insert(self.libs, lib)
+        table.insert(lib.headers, header)
     end,
 
     ---@param self ModGenerator
@@ -204,13 +229,7 @@ local M = {
         generate_struct_typedef(w, exporter.root, used)
 
         -- functions
-        for lib, headers in pairs(self.libs) do
-            local _, basename, ext = utils.split_ext(lib)
-            local lib_name = basename:sub(1)
-            if lib_name:find("lib") == 1 then
-                lib_name = lib_name:sub(4)
-            end
-
+        for i, lib in ipairs(self.libs) do
             w:write(string.format(
                 [[
 -----------------------------------------------------------------------------
@@ -221,29 +240,29 @@ local %s = ffi.load('%s')
 M.cache.%s = %s
 M.libs.%s = {
 ]],
-                lib,
-                lib_name,
-                basename,
-                lib_name,
-                lib_name,
-                lib_name
+                lib.link,
+                lib.name,
+                lib.basename,
+                lib.name,
+                lib.name,
+                lib.name
             ))
 
             ---@param export_header ExportHeader
             local function generate_function(export_header)
                 if
-                    #utils.ifilter(headers, function(i, x)
+                    #utils.ifilter(lib.headers, function(i, x)
                         return x == export_header.header
                     end) > 0
                 then
                     for i, f in ipairs(export_header.functions) do
                         if f.dll_export then
-                            write_function(w, lib_name, f, "")
+                            write_function(w, lib.name, f, "")
                         end
                         if f.same_name then
                             for j, sn in ipairs(f.same_name) do
                                 if sn.dll_export then
-                                    write_function(w, lib_name, sn, string.format("__%d", j))
+                                    write_function(w, lib.name, sn, string.format("__%d", j))
                                 end
                             end
                         end
@@ -252,7 +271,7 @@ M.libs.%s = {
                         if s.methods then
                             for j, m in ipairs(s.methods) do
                                 if m.dll_export then
-                                    write_function(w, lib_name, m, "")
+                                    write_function(w, lib.name, m, "")
                                 end
                             end
                         end

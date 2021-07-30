@@ -291,10 +291,8 @@ local Exporter = {
         if types.is_functionproto(node.type) then
             self:export_functionproto(node)
         else
-            for stack, x in node:traverse() do
-                if #stack == 0 then
-                    -- self
-                elseif #stack == 1 then
+            if node.children then
+                for i, x in ipairs(node.children) do
                     if x.node_type == "typeref" then
                         local ref_node = self.nodemap[x.ref_hash]
                         assert(ref_node)
@@ -307,13 +305,9 @@ local Exporter = {
                         t:set_type(self:export(x))
                     elseif x.node_type == "typedef" then
                         t:set_type(self:export(x))
-                    elseif x.node_type == "param" then
-                        -- TODO: function pointer ?
                     else
                         assert(false)
                     end
-                else
-                    -- nested skip
                 end
             end
         end
