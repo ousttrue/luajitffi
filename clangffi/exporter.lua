@@ -4,11 +4,39 @@ local mod = require("clang.mod")
 local clang = mod.libs.clang
 local CXCursorKind = mod.enums.CXCursorKind
 
+---@class Variable
+---@field name string
+---@field type any
+local Variable = {
+    set_type = function(self, t)
+        self.type = t
+    end,
+}
+Variable.new = function(name, type)
+    return utils.new(Variable, {
+        name = name,
+        type = type,
+    })
+end
+
+---@class Define
+---@field name string
+---@field value string
+local Define = {}
+Define.new = function(name, value)
+    return utils.new(Define, {
+        name = name,
+        value = value,
+    })
+end
+
 ---@class ExportHeader
 ---@field header string
 ---@field functions Function[]
 ---@field types any[]
 ---@field includes ExportHeader[]
+---@field variables Variable[]
+---@field defines Define[]
 local ExportHeader = {
     ---@param self ExportHeader
     ---@return string
@@ -32,6 +60,8 @@ ExportHeader.new = function(header)
         functions = {},
         types = {},
         includes = {},
+        variables = {},
+        defines = {},
     })
 end
 
@@ -189,12 +219,7 @@ local Exporter = {
                     if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
                         local ref_node = self.nodemap[x.ref_hash]
                         assert(ref_node)
-                        self:push_ref(
-                            ref_node,
-                            self.map[node.location.path],
-                            p.set_type,
-                            p
-                        )
+                        self:push_ref(ref_node, self.map[node.location.path], p.set_type, p)
                     end
                 end
             end
@@ -421,6 +446,32 @@ local Exporter = {
         return t
     end,
 
+    export_var = function(self, node, parent)
+        local export_header = self:get_or_create_header(node.location.path, parent)
+        local v = Variable.new(node.spelling)
+
+        for i, x in ipairs(node.children) do
+            if x.cursor_kind == CXCursorKind.CXCursor_TypeRef then
+                local ref_node = self.nodemap[x.ref_hash]
+                assert(ref_node)
+                self:push_ref(ref_node, self.map[node.location.path], v.set_type, v)
+            else
+                assert(false)
+            end
+        end
+
+        table.insert(export_header.variables, v)
+        self.used[node] = v
+    end,
+
+    export_define = function(self, node, parent)
+        local export_header = self:get_or_create_header(node.location.path, parent)
+        local d = Define.new(node.spelling, table.concat(node.tokens, ""))
+
+        table.insert(export_header.defines, d)
+        self.used[node] = d
+    end,
+
     ---@param self Exporter
     ---@param node Node
     ---@param parent Struct
@@ -439,6 +490,10 @@ local Exporter = {
             return self:export_typedef(node, parent)
         elseif node.node_type == "struct" or node.node_type == "union" or node.node_type == "class_template" then
             return self:export_struct(node, parent)
+        elseif node.node_type == "var" then
+            return self:export_var(node, parent)
+        elseif node.node_type == "define" then
+            return self:export_define(node, parent)
         elseif not node.node_type then
             return
         else

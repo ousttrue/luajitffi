@@ -107,6 +107,9 @@ local Parser = {
 
         if cursor.kind == CXCursorKind.CXCursor_TranslationUnit then
         elseif cursor.kind == CXCursorKind.CXCursor_MacroDefinition then
+            node.node_type = "define"
+            node.tokens = clang_util.get_tokens(cursor)
+            table.remove(node.tokens, 1)
         elseif cursor.kind == CXCursorKind.CXCursor_InclusionDirective then
         elseif cursor.kind == CXCursorKind.CXCursor_MacroExpansion then
         elseif cursor.kind == CXCursorKind.CXCursor_UnexposedDecl then
@@ -117,7 +120,6 @@ local Parser = {
         elseif cursor.kind == CXCursorKind.CXCursor_DeclRefExpr then
         elseif cursor.kind == CXCursorKind.CXCursor_FunctionTemplate then
         elseif cursor.kind == CXCursorKind.CXCursor_NonTypeTemplateParameter then
-        elseif cursor.kind == CXCursorKind.CXCursor_VarDecl then
         elseif cursor.kind == CXCursorKind.CXCursor_UnexposedAttr then
         elseif cursor.kind == CXCursorKind.CXCursor_CompoundStmt then
         elseif cursor.kind == CXCursorKind.CXCursor_ReturnStmt then
@@ -160,6 +162,8 @@ local Parser = {
             node.tokens = clang_util.get_tokens(cursor)
         elseif cursor.kind == CXCursorKind.CXCursor_CXXBaseSpecifier then
             node.node_type = "base_class"
+        elseif cursor.kind == CXCursorKind.CXCursor_VarDecl then
+            node.node_type = "var"
         elseif cursor.kind == CXCursorKind.CXCursor_FunctionDecl or cursor.kind == CXCursorKind.CXCursor_CXXMethod then
             node.node_type = "function"
             if cursor.kind == CXCursorKind.CXCursor_CXXMethod then
